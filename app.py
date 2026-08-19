@@ -2,6 +2,7 @@ import streamlit as st
 from gradio_client import Client, handle_file
 import tempfile
 import os
+import shutil
 import asyncio
 import edge_tts
 
@@ -84,18 +85,23 @@ with tab2:
                     prompt=prompt,
                     api_name="/generate"
                 )
-                st.success("✨ 3D Video ထုတ်လုပ်မှု အောင်မြင်ပါသည်။")
-                st.video(result)
                 
-                with open(result, "rb") as f:
+                # MP4 file path သို့ သေချာ ပြောင်းလဲခြင်း
+                mp4_path = tempfile.NamedTemporaryFile(delete=False, suffix=".mp4").name
+                shutil.copy(result, mp4_path)
+                
+                st.success("✨ 3D Video ထုတ်လုပ်မှု အောင်မြင်ပါသည်။")
+                st.video(mp4_path)
+                
+                with open(mp4_path, "rb") as f:
                     st.download_button(
-                        label="📥 ဗီဒီယို ဒေါင်းလုဒ်ရယူရန်",
+                        label="📥 MP4 ဗီဒီယို ဒေါင်းလုဒ်ရယူရန်",
                         data=f.read(),
                         file_name="3d_motion_video.mp4",
                         mime="video/mp4"
                     )
             except Exception as e:
-                st.error(f"Error တက်သွားပါသည် (Server ကျနေပါက ခဏစောင့်ပြီး ပြန်စမ်းပါ): {e}")
+                st.error(f"Error တက်သွားပါသည်: {e}")
 
 # ---------------------------------------------------------
 # TAB 3: Free Talking Avatar (SadTalker Engine)
@@ -142,12 +148,17 @@ with tab3:
                     api_name="/generate"
                 )
                 
-                st.success("✨ Lip-Sync Video အောင်မြင်စွာ ထုတ်ပြီးပါပြီ။")
-                st.video(result[0])
+                # Raw output မှ MP4 ဖိုင်ဖြစ်အောင် တိုက်ရိုက် ကူးယူခြင်း
+                raw_video_path = result[0] if isinstance(result, tuple) or isinstance(result, list) else result
+                mp4_out_path = tempfile.NamedTemporaryFile(delete=False, suffix=".mp4").name
+                shutil.copy(raw_video_path, mp4_out_path)
                 
-                with open(result[0], "rb") as f:
+                st.success("✨ Lip-Sync Video အောင်မြင်စွာ ထုတ်ပြီးပါပြီ။")
+                st.video(mp4_out_path)
+                
+                with open(mp4_out_path, "rb") as f:
                     st.download_button(
-                        label="📥 Lip-Sync Video ဒေါင်းလုဒ်ရယူရန်",
+                        label="📥 Lip-Sync MP4 Video ဒေါင်းလုဒ်ရယူရန်",
                         data=f.read(),
                         file_name="lipsync_avatar.mp4",
                         mime="video/mp4"
