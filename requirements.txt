@@ -1,3 +1,5 @@
 streamlit
 gradio_client
 requests
+edge-tts
+asyncio
