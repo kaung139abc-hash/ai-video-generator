@@ -3,7 +3,9 @@ import os
 import asyncio
 import edge_tts
 import numpy as np
-from PIL import Image, ImageDraw, ImageFont
+import requests
+from io import BytesIO
+from PIL import Image, ImageDraw
 from moviepy.editor import ImageClip, AudioFileClip, concatenate_videoclips
 
 st.set_page_config(page_title="AI Dialogue Story Generator", layout="centered")
@@ -16,7 +18,7 @@ theme = st.selectbox(
     ["Horror (သရဲ/ခြောက်ခြားဖွယ်)", "Fairytale (ပုံပြင်/သာယာဖွယ်)"]
 )
 
-# Microsoft Edge-TTS အသံများ
+# Microsoft Edge-TTS မြန်မာ/အင်္ဂလိပ် အသံများ
 VOICES = {
     "မြန်မာ အမျိုးသား (Thiha)": "my-MM-ThihaNeural",
     "မြန်မာ အမျိုးသမီး (Nilar)": "my-MM-NilarNeural",
@@ -34,13 +36,26 @@ with col2:
 voice1 = VOICES[voice1_label]
 voice2 = VOICES[voice2_label]
 
-# 3. စကားပြော Dialogue ရေးရန်
-st.write("📝 **စကားပြောပုံစံ ထည့်သွင်းပါ** -")
+# 3. စကားပြော Dialogue ရေးရန် (မိနစ်အကန့်အသတ်မရှိ ထည့်နိုင်သည်)
+st.write("📝 **စကားပြော Dialogue ရေးပါ** (တစ်ကြောင်းစီ အလှည့်ကျ ရေးပေးပါ) -")
 default_text = """ဇာတ်ကောင် ၁: ဒီည တောအုပ်ထဲ မသွားနဲ့နော်။
 ဇာတ်ကောင် ၂: ဘာဖြစ်လို့လဲ... ဘာရှိလို့လဲ။
-ဇာတ်ကောင် ၁: အဲဒီမှာ ခြောက်ခြားစရာကောင်းတဲ့ သရဲရှိတယ်။"""
+ဇာတ်ကောင် ၁: အဲဒီမှာ ခြောက်ခြားစရာကောင်းတဲ့ သရဲရှိတယ်။
+ဇာတ်ကောင် ၂: မင်းကလည်း ကြောက်စရာမလိုပါဘူး။
+ဇာတ်ကောင် ၁: မဟုတ်ဘူး တကယ်ပြောတာ... မသွားနဲ့။
+ဇာတ်ကောင် ၂: ကဲပါ... ငါဘာမှမဖြစ်ပါဘူး ကြည့်နေလိုက်။"""
 
-dialogue_text = st.text_area("Dialogue List", value=default_text, height=200)
+dialogue_text = st.text_area("Dialogue List", value=default_text, height=220)
+
+# Character ရုပ်ပုံများ
+HORROR_CHAR1 = "https://images.unsplash.com/photo-1509248961158-e54f6934749c?w=500"
+HORROR_CHAR2 = "https://images.unsplash.com/photo-1518709268805-4e9042af9f23?w=500"
+FAIRY_CHAR1 = "https://images.unsplash.com/photo-1534447677768-be436bb09401?w=500"
+FAIRY_CHAR2 = "https://images.unsplash.com/photo-1514539079130-25950c84af65?w=500"
+
+def load_image_from_url(url):
+    response = requests.get(url)
+    return Image.open(BytesIO(response.content)).convert("RGB")
 
 async def generate_speech(text, voice, output_file):
     communicate = edge_tts.Communicate(text, voice)
@@ -51,74 +66,62 @@ if st.button("🚀 ဗီဒီယို ဖန်တီးမည်"):
     
     if lines:
         try:
-            st.info("⏳ စကားပြော ဗီဒီယို ဖန်တီးနေပါသည်။ ခဏစောင့်ပါ...")
+            st.info("⏳ စကားပြော ရုပ်ပုံများနှင့် အသံများ ပေါင်းစပ်နေပါသည်။ ခဏစောင့်ပါ...")
+            
+            # Theme အလိုက် Image များ ဒေါင်းလုဒ်ဆွဲခြင်း
+            if "Horror" in theme:
+                c1_img = load_image_from_url(HORROR_CHAR1).resize((400, 400))
+                c2_img = load_image_from_url(HORROR_CHAR2).resize((400, 400))
+                bg_color = (15, 8, 20)
+                border_color = (200, 30, 30)
+            else:
+                c1_img = load_image_from_url(FAIRY_CHAR1).resize((400, 400))
+                c2_img = load_image_from_url(FAIRY_CHAR2).resize((400, 400))
+                bg_color = (15, 30, 55)
+                border_color = (235, 180, 40)
+
             clips = []
             total_duration = 0
 
             for index, line in enumerate(lines):
-                # စကားပြောထဲမှ ရှေ့စာသားများ ရှင်းထုတ်ခြင်း
                 clean_text = line
                 if ":" in line:
                     clean_text = line.split(":", 1)[1].strip()
                 elif "：" in line:
                     clean_text = line.split("：", 1)[1].strip()
 
-                # ဇာတ်ကောင် ခွဲခြားခြင်း
-                if "ဇာတ်ကောင် ၂" in line or "Character 2" in line:
-                    current_voice = voice2
-                    speaker_name = "CHARACTER 2"
-                    is_char2 = True
-                else:
-                    current_voice = voice1
-                    speaker_name = "CHARACTER 1"
-                    is_char2 = False
+                is_char2 = ("ဇာတ်ကောင် ၂" in line or "Character 2" in line)
+                current_voice = voice2 if is_char2 else voice1
 
-                # ၁။ Edge-TTS ဖြင့် အသံဖိုင် ဖန်တီးခြင်း
+                # Audio
                 audio_file = f"temp_audio_{index}.mp3"
                 asyncio.run(generate_speech(clean_text, current_voice, audio_file))
-                
                 audio_clip = AudioFileClip(audio_file)
                 total_duration += audio_clip.duration
 
-                if total_duration > 60:
-                    st.warning("⚠️ စာသား ၁ မိနစ်ထက် ကျော်လွန်နေပါသည်။")
-                    audio_clip.close()
-                    break
-
-                # ၂။ Visual Frame အလှဆင် ရေးဆွဲခြင်း
-                bg_color = (15, 8, 20) if "Horror" in theme else (15, 30, 55)
-                img = Image.new('RGB', (1080, 1920), color=bg_color)
-                draw = ImageDraw.Draw(img)
-
-                border_color = (200, 30, 30) if "Horror" in theme else (235, 180, 40)
-                
-                # အပြင်ဘက် ဘောင်
+                # Canvas & Image
+                canvas = Image.new('RGB', (1080, 1920), color=bg_color)
+                draw = ImageDraw.Draw(canvas)
                 draw.rectangle([40, 40, 1040, 1880], outline=border_color, width=8)
 
-                # ဇာတ်ကောင် Avatar Icon ရေးဆွဲခြင်း (ဘယ်/ညာ အလှည့်ကျ ပြသရန်)
+                # Character Image paste
                 if not is_char2:
-                    # ဇာတ်ကောင် ၁ (ဘယ်ဘက်)
-                    draw.ellipse([150, 600, 450, 900], fill=(220, 50, 50) if "Horror" in theme else (50, 120, 220), outline=(255,255,255), width=5)
-                    draw.rectangle([500, 680, 950, 820], fill=(40, 20, 30) if "Horror" in theme else (30, 50, 90), outline=border_color, width=3)
+                    canvas.paste(c1_img, (100, 600))
+                    draw.rectangle([100, 600, 500, 1000], outline=(255, 255, 255), width=5)
                 else:
-                    # ဇာတ်ကောင် ၂ (ညာဘက်)
-                    draw.ellipse([630, 600, 930, 900], fill=(160, 40, 200) if "Horror" in theme else (40, 180, 120), outline=(255,255,255), width=5)
-                    draw.rectangle([130, 680, 580, 820], fill=(40, 20, 30) if "Horror" in theme else (30, 50, 90), outline=border_color, width=3)
+                    canvas.paste(c2_img, (580, 600))
+                    draw.rectangle([580, 600, 980, 1000], outline=(255, 255, 255), width=5)
 
-                # အောက်ခြေ စကားပြော Subtitle Card Box
                 draw.rectangle([80, 1300, 1000, 1700], fill=(25, 15, 30) if "Horror" in theme else (20, 40, 75), outline=border_color, width=4)
 
-                # Frame အား NumPy Array ပြောင်း၍ MoviePy Clip လုပ်ခြင်း
-                img_np = np.array(img)
+                img_np = np.array(canvas)
                 img_clip = ImageClip(img_np).set_duration(audio_clip.duration)
                 seg_clip = img_clip.set_audio(audio_clip)
                 clips.append(seg_clip)
 
             if clips:
-                # ၃။ ဗီဒီယို ပေါင်းစည်းခြင်း
                 final_video = concatenate_videoclips(clips)
                 output_path = "story_dialogue_video.mp4"
-                
                 final_video.write_videofile(
                     output_path,
                     fps=24,
@@ -130,7 +133,7 @@ if st.button("🚀 ဗီဒီယို ဖန်တီးမည်"):
                 for clip in clips:
                     clip.close()
 
-                st.success("🎉 ဗီဒီယို ဖန်တီးမှု အောင်မြင်ပါသည်!")
+                st.success(f"🎉 ဗီဒီယို ဖန်တီးမှု အောင်မြင်ပါသည်! (စုစုပေါင်း ကြာချိန်: {round(total_duration, 1)} စက္ကန့်)")
                 st.video(output_path)
 
         except Exception as e:
