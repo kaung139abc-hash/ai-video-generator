@@ -1,7 +1,9 @@
 import streamlit as st
 import os
-from gtts import gTTS
-from PIL import Image, ImageDraw
+import asyncio
+import edge_tts
+import numpy as np
+from PIL import Image, ImageDraw, ImageFont
 from moviepy.editor import ImageClip, AudioFileClip, concatenate_videoclips
 
 st.set_page_config(page_title="AI Dialogue Story Generator", layout="centered")
@@ -14,12 +16,23 @@ theme = st.selectbox(
     ["Horror (သရဲ/ခြောက်ခြားဖွယ်)", "Fairytale (ပုံပြင်/သာယာဖွယ်)"]
 )
 
+# Microsoft Edge-TTS မြန်မာနှင့် အင်္ဂလိပ် အသံများ
+VOICES = {
+    "မြန်မာ အမျိုးသား (Thiha)": "my-MM-ThihaNeural",
+    "မြန်မာ အမျိုးသမီး (Nilar)": "my-MM-NilarNeural",
+    "အင်္ဂလိပ် အမျိုးသား (Guy - US)": "en-US-GuyNeural",
+    "အမျိုးသမီး (Jenny - US)": "en-US-JennyNeural"
+}
+
 # 2. ဇာတ်ကောင်အသံ ရွေးချယ်မှု
 col1, col2 = st.columns(2)
 with col1:
-    voice1 = st.selectbox("🎙️ ဇာတ်ကောင် (၁) အသံ:", ["Myanmar Native", "US Male Accent", "UK Female Accent"])
+    voice1_label = st.selectbox("🎙️ ဇာတ်ကောင် (၁) အသံ:", list(VOICES.keys()), index=0)
 with col2:
-    voice2 = st.selectbox("🎙️ ဇာတ်ကောင် (၂) အသံ:", ["UK Female Accent", "Myanmar Native", "AU Male Accent"])
+    voice2_label = st.selectbox("🎙️ ဇာတ်ကောင် (၂) အသံ:", list(VOICES.keys()), index=1)
+
+voice1 = VOICES[voice1_label]
+voice2 = VOICES[voice2_label]
 
 # 3. စကားပြော Dialogue ရေးရန်
 st.write("📝 **စကားပြောပုံစံ ထည့်သွင်းပါ** (တစ်ကြောင်းလျှင် တစ်ယောက် အလှည့်ကျ ရေးပါ) -")
@@ -27,14 +40,9 @@ default_text = "ဇာတ်ကောင် ၁: ဒီည တောအုပ်
 
 dialogue_text = st.text_area("Dialogue List", value=default_text, height=180)
 
-def get_gtts_config(voice_choice):
-    if "US Male" in voice_choice:
-        return 'en', 'ca'
-    elif "UK Female" in voice_choice:
-        return 'en', 'co.uk'
-    elif "AU Male" in voice_choice:
-        return 'en', 'com.au'
-    return 'my', 'com'
+async def generate_speech(text, voice, output_file):
+    communicate = edge_tts.Communicate(text, voice)
+    await communicate.save(output_file)
 
 if st.button("🚀 ဗီဒီယို ဖန်တီးမည်"):
     lines = [line.strip() for line in dialogue_text.strip().split("\n") if line.strip()]
@@ -45,39 +53,47 @@ if st.button("🚀 ဗီဒီယို ဖန်တီးမည်"):
             clips = []
 
             for index, line in enumerate(lines):
-                # ဇာတ်ကောင် ၁ သို့မဟုတ် ၂ ခွဲခြားခြင်း
-                if "ဇာတ်ကောင် ၂" in line or "Character 2" in line:
-                    speaker = "ဇာတ်ကောင် ၂"
-                    lang, tld = get_gtts_config(voice2)
-                else:
-                    speaker = "ဇာတ်ကောင် ၁"
-                    lang, tld = get_gtts_config(voice1)
+                # စကားပြောထဲမှ ရှေ့စာသားများ ရှင်းထုတ်ခြင်း
+                clean_text = line
+                if ":" in line:
+                    clean_text = line.split(":", 1)[1].strip()
+                elif "：" in line:
+                    clean_text = line.split("：", 1)[1].strip()
 
-                # ၁။ အသံဖိုင် ဖန်တီးခြင်း
-                tts = gTTS(text=line, lang=lang, tld=tld, slow=False)
+                # ဇာတ်ကောင် ၁ သို့မဟုတ် ၂ အသံ ရွေးချယ်ခြင်း
+                if "ဇာတ်ကောင် ၂" in line or "Character 2" in line:
+                    current_voice = voice2
+                    speaker_label = "ဇာတ်ကောင် ၂"
+                else:
+                    current_voice = voice1
+                    speaker_label = "ဇာတ်ကောင် ၁"
+
+                # ၁။ Edge-TTS ဖြင့် အသံဖိုင် ဖန်တီးခြင်း
                 audio_file = f"temp_audio_{index}.mp3"
-                tts.save(audio_file)
+                asyncio.run(generate_speech(clean_text, current_voice, audio_file))
+                
                 audio_clip = AudioFileClip(audio_file)
 
-                # ၂။ Theme အလိုက် ဇာတ်ရုပ် Visual Background ဖန်တီးခြင်း
-                img = Image.new('RGB', (1080, 1920), color=(10, 5, 10) if "Horror" in theme else (20, 35, 60))
+                # ၂။ ပုံရိပ် ရောင်စုံ Frame ဖန်တီးခြင်း (NumPy array ပြောင်း၍ ရုပ်ထွက်သေချာစေရန်)
+                bg_color = (15, 5, 20) if "Horror" in theme else (20, 40, 70)
+                img = Image.new('RGB', (1080, 1920), color=bg_color)
                 draw = ImageDraw.Draw(img)
 
-                # Theme အလိုက် အလှဆင် ရောင်ခြည်/Border သတ်မှတ်ခြင်း
-                border_color = (180, 20, 20) if "Horror" in theme else (230, 180, 50)
-                draw.rectangle([50, 50, 1030, 1870], outline=border_color, width=10)
+                # ဘောင် အလှဆင်ခြင်း
+                border_color = (200, 30, 30) if "Horror" in theme else (240, 190, 40)
+                draw.rectangle([40, 40, 1040, 1880], outline=border_color, width=12)
 
-                img_file = f"temp_img_{index}.png"
-                img.save(img_file)
-
-                # ၃။ Video Segment ဖန်တီးခြင်း
-                img_clip = ImageClip(img_file).set_duration(audio_clip.duration)
+                # Frame အား NumPy Array ပြောင်း၍ ImageClip ထဲ ထည့်ခြင်း
+                img_np = np.array(img)
+                img_clip = ImageClip(img_np).set_duration(audio_clip.duration)
                 seg_clip = img_clip.set_audio(audio_clip)
                 clips.append(seg_clip)
 
-            # ၄။ Segment အားလုံးကို တစ်ဆက်တည်း ပေါင်းစပ်ခြင်း
+            # ၃။ ဗီဒီယို ပေါင်းစည်းခြင်း
             final_video = concatenate_videoclips(clips)
             output_path = "story_dialogue_video.mp4"
+            
+            # H.264 & YUV420p ထုတ်ယူခြင်း (ဖုန်း browser တိုင်းတွင် ရုပ်ရော အသံပါ ပေါ်စေသည်)
             final_video.write_videofile(
                 output_path,
                 fps=24,
@@ -86,7 +102,6 @@ if st.button("🚀 ဗီဒီယို ဖန်တီးမည်"):
                 ffmpeg_params=["-pix_fmt", "yuv420p"]
             )
 
-            # ပိတ်ရန်
             for clip in clips:
                 clip.close()
 
