@@ -13,9 +13,9 @@ if not API_KEY:
     st.error("⚠️ Streamlit Secrets ထဲမှာ `DID_API_KEY` ရှာမတွေ့ပါ။ Secrets ထဲတွင် API Key သေချာ ထည့်သွင်းပေးပါ။")
     st.stop()
 
-# 3D Cartoon Avatar Image များ (D-ID လက်ခံရန် .jpg သီးသန့် ထည့်ထားသည်)
-CHAR1_IMAGE = "https://create-images-results.d-id.com/DefaultPresenters/Noam_m/image.jpeg"
-CHAR2_IMAGE = "https://create-images-results.d-id.com/DefaultPresenters/Amy_f/image.jpeg"
+# D-ID လက်ခံနိုင်သော အများပြည်သူကြည့်နိုင်သည့် Direct .jpg Link များ
+CHAR1_IMAGE = "https://upload.wikimedia.org/wikipedia/commons/thumb/4/48/Outdoors-man-portrait_%28cropped%29.jpg/600px-Outdoors-man-portrait_%28cropped%29.jpg"
+CHAR2_IMAGE = "https://upload.wikimedia.org/wikipedia/commons/thumb/a/a8/Woman_in_the_sunset_%28cropped%29.jpg/600px-Woman_in_the_sunset_%28cropped%29.jpg"
 
 dialogue_text = st.text_area(
     "📝 စကားပြော Dialogue ရေးပါ (အင်္ဂလိပ် သို့မဟုတ် မြန်မာ)-",
@@ -53,7 +53,7 @@ if st.button("🚀 AI 3D Video ဖန်တီးမည်"):
     lines = [line.strip() for line in dialogue_text.strip().split("\n") if line.strip()]
     
     if lines:
-        st.info("⏳ AI မှ 3D Cartoon မျက်နှာနှင့် ပါးစပ် လှုပ်ရှားမှု ဖန်တီးနေပါသည်။...")
+        st.info("⏳ AI မှ မျက်နှာနှင့် ပါးစပ် လှုပ်ရှားမှု ဖန်တီးနေပါသည်။...")
         for index, line in enumerate(lines):
             clean_text = line.split(":", 1)[1].strip() if ":" in line else line
             is_char2 = ("Character 2" in line or "ဇာတ်ကောင် ၂" in line)
@@ -76,11 +76,11 @@ if st.button("🚀 AI 3D Video ဖန်တီးမည်"):
                         st.video(video_url)
                         break
                     elif status == "error":
-                        st.error(f"Line {index+1} ဖန်တီးရာတွင် အမှားအယွင်းရှိပါသည်- {status_res}")
+                        st.error(f"Line {index+1} ဖန်တီးရာတွင် အမှားအယွင်းရှိပါသည်: {status_res}")
                         break
                     
                     time.sleep(3)
             else:
                 st.error(f"Error: {res}")
 
-st.write("💡 *Secrets ထဲတွင် ထည့်သွင်းထားသော D-ID API Key ကို သုးံ၍ ဗီဒီယို ဖန်တီးပေးမည် ဖြစ်ပါသည်။*")
+st.write("💡 *Secrets ထဲတွင် ထည့်သွင်းထားသော D-ID API Key ကို သုံး၍ ဗီဒီယို ဖန်တီးပေးမည် ဖြစ်ပါသည်။*")
