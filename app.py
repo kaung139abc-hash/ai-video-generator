@@ -1,132 +1,115 @@
 import streamlit as st
-import requests
-import time
+from gradio_client import Client, handle_file
 import tempfile
 import os
-import ffmpeg
 
-st.set_page_config(page_title="AI 3D Lip-Sync Story Generator", layout="centered")
-st.title("🎭 AI 3D Cartoon Lip-Sync Video Generator")
+st.set_page_config(page_title="Free 3D AI Video Studio", layout="centered")
+st.title("🎬 100% Free AI 3D Video Studio")
+st.caption("✨ Hugging Face ရဲ့ Free AI Engine များကို တိုက်ရိုက် ချိတ်ဆက်ထားပါသည်။")
 
-API_KEY = st.secrets.get("DID_API_KEY", "")
+tab1, tab2 = st.tabs(["🎥 3D Motion Video (Text to Video)", "🗣️ Free Lip-Sync Avatar"])
 
-if not API_KEY:
-    st.error("⚠️ Streamlit Secrets ထဲတွင် `DID_API_KEY` ထည့်သွင်းပေးပါ။")
-    st.stop()
-
-PRESENTERS = {
-    "Male 1 (Matt)": "matt",
-    "Female 1 (Amy)": "amy",
-    "Male 2 (Jack)": "jack",
-    "Female 2 (Lori)": "lori"
-}
-
-st.sidebar.header("⚙️ Settings")
-char1_p = st.sidebar.selectbox("Character 1 (Male/Female)-", list(PRESENTERS.keys()), index=0)
-char2_p = st.sidebar.selectbox("Character 2 (Male/Female)-", list(PRESENTERS.keys()), index=1)
-
-def create_talk(presenter_id, text, voice_id):
-    url = "https://api.d-id.com/talks"
-    headers = {"Authorization": f"Basic {API_KEY}", "Content-Type": "application/json"}
-    payload = {
-        "script": {"type": "text", "input": text, "provider": {"type": "microsoft", "voice_id": voice_id}},
-        "presenter_id": presenter_id
-    }
-    return requests.post(url, json=payload, headers=headers).json()
-
-def get_talk_status(talk_id):
-    url = f"https://api.d-id.com/talks/{talk_id}"
-    headers = {"Authorization": f"Basic {API_KEY}"}
-    return requests.get(url, headers=headers).json()
-
-st.subheader("📝 Dialogue Input")
-default_text = "Character 1: Do you hear that strange voice?\nCharacter 2: Yes, run before it catches us!"
-dialogue_text = st.text_area("စကားပြော Dialogue ရေးပါ-", value=default_text, height=150)
-
-if st.button("🚀 ဗီဒီယို တစ်ပုဒ်တည်း အပြီးပေါင်းထုတ်မည်"):
-    lines = [line.strip() for line in dialogue_text.strip().split("\n") if line.strip()]
+# ---------------------------------------------------------
+# TAB 1: 3D Motion Video Generation (Text-to-Video)
+# ---------------------------------------------------------
+with tab1:
+    st.subheader("📝 3D Motion Prompt ရေးပါ")
+    st.info("လမ်းလျှောက်ခြင်း၊ ထမင်းစားခြင်း စသည့် 3D ဇာတ်ကောင် လှုပ်ရှားမှုများကို အကန့်အသတ်မရှိ အခမဲ့ ထုတ်နိုင်ပါသည်။")
     
-    if lines:
-        video_files = []
-        temp_dir = tempfile.mkdtemp()
-        
-        st.info("⏳ AI မှ စကားပြော ဗီဒီယိုများကို စတင်ဖန်တီးနေပါသည်။...")
-        progress_bar = st.progress(0)
-        
-        success = True
-        for index, line in enumerate(lines):
-            clean_text = line.split(":", 1)[1].strip() if ":" in line else line
-            is_char2 = ("Character 2" in line or "ဇာတ်ကောင် ၂" in line)
-            
-            selected_char = char2_p if is_char2 else char1_p
-            p_id = PRESENTERS[selected_char]
-            
-            # အသံ အလိုအလျောက် ရွေးချယ်ခြင်း
-            voice_id = "en-US-JennyNeural" if ("Female" in selected_char or "Amy" in selected_char or "Lori" in selected_char) else "en-US-GuyNeural"
-
-            res = create_talk(p_id, clean_text, voice_id)
-            
-            if "id" in res:
-                talk_id = res["id"]
-                st.write(f"🎬 Line {index+1} ကို Process လုပ်နေပါပြီ...")
-                
-                while True:
-                    status_res = get_talk_status(talk_id)
-                    status = status_res.get("status")
-                    
-                    if status == "done":
-                        v_url = status_res.get("result_url")
-                        # Video file ဒေါင်းလုဒ်ဆွဲပြီး Temp ထဲသိမ်းခြင်း
-                        v_bytes = requests.get(v_url).content
-                        file_path = os.path.join(temp_dir, f"clip_{index}.mp4")
-                        with open(file_path, "wb") as f:
-                            f.write(v_bytes)
-                        video_files.append(file_path)
-                        break
-                    elif status == "error":
-                        st.error(f"Line {index+1} မှာ Error တက်သွားပါသည်")
-                        success = False
-                        break
-                    time.sleep(2)
-            else:
-                st.error(f"D-ID API Error: {res}")
-                success = False
-                break
-            
-            progress_bar.progress(int(((index + 1) / len(lines)) * 50))
-
-        # ဗီဒီယိုများကို FFmpeg ဖြင့် ၁ ပုဒ်တည်း ဖြစ်အောင် ပေါင်းစပ်ခြင်း
-        if success and len(video_files) == len(lines):
-            st.info("🎬 ဗီဒီယို အပိုင်းအစများကို တစ်ပုဒ်တည်းဖြစ်အောင် ပေါင်းစပ်နေပါသည်။...")
-            
-            list_file_path = os.path.join(temp_dir, "files.txt")
-            with open(list_file_path, "w") as f:
-                for vf in video_files:
-                    f.write(f"file '{vf}'\n")
-            
-            output_combined_path = os.path.join(temp_dir, "final_story.mp4")
-            
+    prompt = st.text_area(
+        "Prompt (English)-",
+        value="A 3D Pixar style character walking happily and eating food, highly detailed, smooth 3d animation",
+        height=100
+    )
+    
+    if st.button("🚀 Free 3D Motion Video ဖန်တီးမည်"):
+        if not prompt.strip():
+            st.warning("Prompt ထည့်သွင်းပေးပါခင်ဗျာ။")
+        else:
             try:
-                # FFmpeg concat command
-                (
-                    ffmpeg
-                    .input(list_file_path, format='concat', safe=0)
-                    .output(output_combined_path, c='copy')
-                    .run(overwrite_output=True, quiet=True)
+                st.info("⏳ Hugging Face Free Server တွင် 3D Video ကို Render လုပ်နေပါသည်။ စက္ကန့် ၄၀ မှ ၁ မိနစ်ခန့် စောင့်ပေးပါ...")
+                
+                # Hugging Face Free Text-to-Video Engine သို့ ချိတ်ဆက်ခြင်း
+                client = Client("ZeroGPU-Explorers/Text-to-Video")
+                result = client.predict(
+                    prompt=prompt,
+                    api_name="/generate"
                 )
                 
-                progress_bar.progress(100)
-                st.success("✨ ဗီဒီယို ပေါင်းစပ်မှု အောင်မြင်ပါသည်။")
+                st.success("✨ 3D Video ထုတ်လုပ်မှု အောင်မြင်ပါသည်။")
+                st.video(result)
                 
-                # ပြသခြင်းနှင့် ဒေါင်းလုဒ်ပေးခြင်း
-                st.video(output_combined_path)
-                
-                with open(output_combined_path, "rb") as f:
+                with open(result, "rb") as f:
                     st.download_button(
-                        label="📥 ဗီဒီယိုအပြည့်အစုံ (Full Video) ဒေါင်းလုဒ်ရယူရန်",
+                        label="📥 ဗီဒီယို ဒေါင်းလုဒ်ရယူရန်",
                         data=f.read(),
-                        file_name="full_story_video.mp4",
+                        file_name="3d_motion_video.mp4",
                         mime="video/mp4"
                     )
             except Exception as e:
-                st.error(f"Video Concatenation Error: {e}")
+                st.error(f"Error တက်သွားပါသည် (Server ကျနေပါက ခဏစောင့်ပြီး ပြန်စမ်းပါ): {e}")
+
+# ---------------------------------------------------------
+# TAB 2: Free Talking Avatar (SadTalker Engine)
+# ---------------------------------------------------------
+with tab2:
+    st.subheader("📸 ဓာတ်ပုံ သို့မဟုတ် 3D Character ကို ပါးစပ် လှုပ်ရှားခိုင်းမည်")
+    st.info("D-ID မလိုဘဲ Free SadTalker AI ဖြင့် နှုတ်ခမ်း လှုပ်ရှားပေးပါမည်။")
+    
+    img_file = st.file_uploader("3D Character ပုံ တင်ပါ (JPG/PNG)-", type=["jpg", "png", "jpeg"])
+    audio_file = st.file_uploader("စကားပြော Audio ဖိုင် တင်ပါ (MP3/WAV)-", type=["mp3", "wav"])
+    
+    if st.button("🚀 Free Lip-Sync Video ဖန်တီးမည်"):
+        if not img_file or not audio_file:
+            st.warning("⚠️ ပုံနှင့် Audio ဖိုင် နှစ်ခုစလုံး တင်ပေးရန် လိုအပ်ပါသည်။")
+        else:
+            try:
+                st.info("⏳ AI မှ ပုံနှင့် အသံကို ချိတ်ဆက်နေပါသည်။ ခဏစောင့်ပေးပါ...")
+                
+                # Temp ဖိုင်များ တည်ဆောက်ခြင်း
+                with tempfile.NamedTemporaryFile(delete=False, suffix=".png") as tmp_img:
+                    tmp_img.write(img_file.getvalue())
+                    img_path = tmp_img.name
+
+                with tempfile.NamedTemporaryFile(delete=False, suffix=".wav") as tmp_aud:
+                    tmp_aud.write(audio_file.getvalue())
+                    aud_path = tmp_aud.name
+
+                # SadTalker Free Engine သို့ ချိတ်ဆက်ခြင်း
+                client = Client("vinthony/SadTalker")
+                result = client.predict(
+                    source_image=handle_file(img_path),
+                    driven_audio=handle_file(aud_path),
+                    preprocess="crop",
+                    still_mode=True,
+                    use_enhancer=False,
+                    batch_size=1,
+                    size=256,
+                    pose_style=0,
+                    facerender="faceidness",
+                    exp_weight=1,
+                    use_ref_video=False,
+                    ref_video=None,
+                    ref_info="pose",
+                    use_idle_mode=False,
+                    length_of_pose=0,
+                    api_name="/generate"
+                )
+                
+                st.success("✨ Lip-Sync Video အောင်မြင်စွာ ထုတ်ပြီးပါပြီ။")
+                st.video(result[0])
+                
+                with open(result[0], "rb") as f:
+                    st.download_button(
+                        label="📥 Lip-Sync Video ဒေါင်းလုဒ်ရယူရန်",
+                        data=f.read(),
+                        file_name="lipsync_avatar.mp4",
+                        mime="video/mp4"
+                    )
+                
+                # Cleanup Temp Files
+                os.remove(img_path)
+                os.remove(aud_path)
+
+            except Exception as e:
+                st.error(f"Error တက်သွားပါသည်: {e}")
