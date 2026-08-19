@@ -3,9 +3,6 @@ import requests
 import asyncio
 import aiohttp
 import time
-import tempfile
-import os
-from moviepy.editor import VideoFileClip, concatenate_videoclips
 
 st.set_page_config(page_title="AI 3D Lip-Sync Story Generator", layout="wide")
 st.title("🎭 AI 3D Cartoon Lip-Sync Video Generator")
@@ -57,7 +54,6 @@ async def process_single_line(session, line, index, char1, char2):
     selected_char = char2 if is_char2 else char1
     p_id = PRESENTERS[selected_char]
     
-    # အမျိုးသမီး / အမျိုးသား အသံ ခွဲခြားခြင်း
     if "Female" in selected_char or "Amy" in selected_char or "Lori" in selected_char:
         voice_id = "en-US-JennyNeural"
     else:
@@ -85,52 +81,31 @@ st.subheader("📝 Dialogue Input")
 default_text = "Character 1: Do you hear that strange voice?\nCharacter 2: Yes, run before it catches us!"
 dialogue_text = st.text_area("စကားပြော Dialogue ရေးပါ-", value=default_text, height=150)
 
-if st.button("🚀 ဗီဒီယို တစ်ပုဒ်တည်း ပေါင်းထုတ်မည်"):
+if st.button("🚀 AI 3D Video ထုတ်လုပ်မည်"):
     lines = [line.strip() for line in dialogue_text.strip().split("\n") if line.strip()]
     
     if lines:
-        st.info("⏳ AI မှ ဗီဒီယိုဖိုင်များကို ထုတ်လုပ်နေပါသည်။...")
+        st.info("⏳ AI မှ မျက်နှာနှင့် ပါးစပ် လှုပ်ရှားမှု ဖန်တီးနေပါသည်။...")
         results = asyncio.run(process_all_lines(lines, char1_p, char2_p))
         
-        video_urls = [res[1] for res in sorted(results, key=lambda x: x[0]) if res[1]]
+        st.success("✨ ဗီဒီယိုများ ထွက်ရှိလာပါပြီ။")
         
-        if len(video_urls) == len(lines):
-            st.info("🎬 ဗီဒီယိုများကို တစ်ပုဒ်တည်း ဖြစ်အောင် ပေါင်းစပ်နေပါသည်...")
-            
-            temp_files = []
-            clips = []
-            
-            try:
-                # ဒေါင်းလုဒ်ဆွဲပြီး တစ်ပေါင်းတည်း ဆက်ခြင်း
-                for url in video_urls:
-                    r = requests.get(url)
-                    tf = tempfile.NamedTemporaryFile(delete=False, suffix=".mp4")
-                    tf.write(r.content)
-                    tf.close()
-                    temp_files.append(tf.name)
-                    clips.append(VideoFileClip(tf.name))
-                
-                final_clip = concatenate_videoclips(clips)
-                output_path = tempfile.NamedTemporaryFile(delete=False, suffix=".mp4").name
-                final_clip.write_videofile(output_path, codec="libx264", audio_codec="aac")
-                
-                # ပြသခြင်းနှင့် ဒေါင်းလုဒ်ပေးခြင်း
-                st.success("✨ ဗီဒီယို ပေါင်းစပ်မှု အောင်မြင်ပါသည်။")
-                st.video(output_path)
-                
-                with open(output_path, "rb") as f:
+        for idx, video_url, error in sorted(results, key=lambda x: x[0]):
+            if video_url:
+                col1, col2 = st.columns([3, 1])
+                with col1:
+                    st.write(f"🎬 **Line {idx+1}:**")
+                    st.video(video_url)
+                with col2:
+                    st.write(" ")
+                    st.write(" ")
+                    video_bytes = requests.get(video_url).content
                     st.download_button(
-                        label="📥 ဗီဒီယိုအပြည့်အစုံ ဒေါင်းလုဒ်ရယူရန်",
-                        data=f.read(),
-                        file_name="full_combined_story.mp4",
-                        mime="video/mp4"
+                        label=f"📥 Line {idx+1} Download",
+                        data=video_bytes,
+                        file_name=f"dialogue_line_{idx+1}.mp4",
+                        mime="video/mp4",
+                        key=f"dl_{idx}"
                     )
-            finally:
-                # Temp ဖိုင်များ ရှင်းလင်းခြင်း
-                for clip in clips:
-                    clip.close()
-                for tf_path in temp_files:
-                    if os.path.exists(tf_path):
-                        os.remove(tf_path)
-        else:
-            st.error("ဗီဒီယို အချို့ ထုတ်လုပ်ရာတွင် Error တက်သွားပါသည်။")
+            else:
+                st.error(f"Error in Line {idx+1}: {error}")
