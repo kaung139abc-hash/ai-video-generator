@@ -13,9 +13,9 @@ if not API_KEY:
     st.error("⚠️ Streamlit Secrets ထဲမှာ `DID_API_KEY` ရှာမတွေ့ပါ။ Secrets ထဲတွင် API Key သေချာ ထည့်သွင်းပေးပါ။")
     st.stop()
 
-# 3D Cartoon Avatar Image များ (URL)
-CHAR1_IMAGE = "https://images.unsplash.com/photo-1534447677768-be436bb09401?w=500"
-CHAR2_IMAGE = "https://images.unsplash.com/photo-1509248961158-e54f6934749c?w=500"
+# 3D Cartoon Avatar Image များ (D-ID လက်ခံရန် .jpg သီးသန့် ထည့်ထားသည်)
+CHAR1_IMAGE = "https://create-images-results.d-id.com/DefaultPresenters/Noam_m/image.jpeg"
+CHAR2_IMAGE = "https://create-images-results.d-id.com/DefaultPresenters/Amy_f/image.jpeg"
 
 dialogue_text = st.text_area(
     "📝 စကားပြော Dialogue ရေးပါ (အင်္ဂလိပ် သို့မဟုတ် မြန်မာ)-",
@@ -41,6 +41,14 @@ def create_talk(image_url, text):
     response = requests.post(url, json=payload, headers=headers)
     return response.json()
 
+def get_talk_status(talk_id):
+    url = f"https://api.d-id.com/talks/{talk_id}"
+    headers = {
+        "Authorization": f"Basic {API_KEY}"
+    }
+    response = requests.get(url, headers=headers)
+    return response.json()
+
 if st.button("🚀 AI 3D Video ဖန်တီးမည်"):
     lines = [line.strip() for line in dialogue_text.strip().split("\n") if line.strip()]
     
@@ -53,6 +61,26 @@ if st.button("🚀 AI 3D Video ဖန်တီးမည်"):
             img_url = CHAR2_IMAGE if is_char2 else CHAR1_IMAGE
             
             res = create_talk(img_url, clean_text)
-            st.write(f"Line {index+1} Result:", res)
+            
+            if "id" in res:
+                talk_id = res["id"]
+                st.write(f"🎬 Line {index+1} ဗီဒီယို ပြုလုပ်နေပါပြီ...")
+                
+                # Video processing ပြီးသည်အထိ စောင့်ကြည့်ခြင်း
+                while True:
+                    status_res = get_talk_status(talk_id)
+                    status = status_res.get("status")
+                    
+                    if status == "done":
+                        video_url = status_res.get("result_url")
+                        st.video(video_url)
+                        break
+                    elif status == "error":
+                        st.error(f"Line {index+1} ဖန်တီးရာတွင် အမှားအယွင်းရှိပါသည်- {status_res}")
+                        break
+                    
+                    time.sleep(3)
+            else:
+                st.error(f"Error: {res}")
 
-st.write("💡 *Secrets ထဲတွင် ထည့်သွင်းထားသော D-ID API Key ကို သုံး၍ ဗီဒီယို ဖန်တီးပေးမည် ဖြစ်ပါသည်။*")
+st.write("💡 *Secrets ထဲတွင် ထည့်သွင်းထားသော D-ID API Key ကို သုးံ၍ ဗီဒီယို ဖန်တီးပေးမည် ဖြစ်ပါသည်။*")
