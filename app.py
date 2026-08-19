@@ -1,171 +1,114 @@
 import streamlit as st
-from gradio_client import Client, handle_file
+from gradio_client import Client
 import tempfile
 import os
+import ffmpeg
 import shutil
 import asyncio
 import edge_tts
 
 st.set_page_config(page_title="Free 3D AI Video Studio", layout="centered")
-st.title("🎬 100% Free AI 3D Video Studio")
-st.caption("✨ Microsoft Free Voice & Hugging Face Free AI Engine များကို ချိတ်ဆက်ထားပါသည်။")
+st.title("🎬 100% Free 3D Multi-Scene Video Studio")
+st.caption("✨ Scene များစွာကို အလိုအလျောက် Render လုပ်ပြီး ၁ မိနစ်စာ ဗီဒီယို ပေါင်းထုတ်ပေးမည့် စနစ်")
 
-tab1, tab2, tab3 = st.tabs(["🔊 Free Voice Generator", "🎥 3D Motion Video", "🗣️ Free Lip-Sync Avatar"])
+tab1, tab2 = st.tabs(["🎥 3D Multi-Scene Video (၁ မိနစ်စာ)", "🔊 Free AI Voice"])
 
 # ---------------------------------------------------------
-# TAB 1: Free Text to Speech Audio Generator (edge-tts)
+# TAB 1: Multi-Scene 3D Motion Video Generator
 # ---------------------------------------------------------
 with tab1:
-    st.subheader("🔊 Free AI Voice (Text to Speech) ဖန်တီးမည်")
-    st.info("စာရိုက်ပေးရုံဖြင့် Microsoft ၏ သဘာဝကျသော AI အသံများကို အခမဲ့ MP3 ဖိုင် ထုတ်ပေးပါမည်။")
+    st.subheader("📝 3D Scene မူကွဲများ ရေးပါ")
+    st.info("Scene တစ်ခုလျှင် စကြောင်းတစ်ကြောင်းစီ ခွဲရေးပါ။ AI က Scene တစ်ခုချင်းစီကို အခမဲ့ Render လုပ်ပြီး ၁ မိနစ်စာ ဗီဒီယိုဖြစ်အောင် ပေါင်းပေးပါမည်။")
     
-    tts_text = st.text_area(
-        "အသံပြောင်းချင်သော စာသား ရေးပါ (English / Romanized):",
-        value="Do you hear that scary noise? Run quickly!",
-        height=100
+    default_scenes = (
+        "Scene 1: A 3D Pixar style character walking in a creepy dark forest with a flashlight\n"
+        "Scene 2: The character hears a scary noise, looking around nervously, dark atmosphere\n"
+        "Scene 3: A shadow monster appears behind the trees, dramatic cinematic lighting\n"
+        "Scene 4: The 3D character runs away very fast, panicked expression, smooth animation\n"
+        "Scene 5: The character safely enters a safe wooden house and breathes heavily"
     )
     
-    voice_option = st.selectbox("အသံအမျိုးအစား ရွေးပါ-", [
-        "en-US-GuyNeural (US Male - အမျိုးသားအသံ)",
-        "en-US-JennyNeural (US Female - အမျိုးသမီးအသံ)",
-        "en-US-ChristopherNeural (Dark/Horror Tone အသံ)",
-        "en-GB-RyanNeural (UK Male - အင်္ဂလန် အမျိုးသား)",
-        "en-GB-SoniaNeural (UK Female - အင်္ဂလန် အမျိုးသမီး)"
-    ])
+    scene_text = st.text_area("Scenes ရေးပါ (တစ်ကြောင်းလျှင် Scene ၁ ခု):", value=default_scenes, height=150)
     
-    selected_voice = voice_option.split(" ")[0]
+    if st.button("🚀 ၁ မိနစ်စာ 3D Video အပြီး ပေါင်းထုတ်မည်"):
+        scenes = [line.strip() for line in scene_text.strip().split("\n") if line.strip()]
+        
+        if not scenes:
+            st.warning("Scene ရေးသားပေးပါခင်ဗျာ။")
+        else:
+            temp_dir = tempfile.mkdtemp()
+            video_files = []
+            
+            st.info("⏳ Scene များကို တစ်ခုပြီးတစ်ခု Render လုပ်နေပါသည်။ ခဏစောင့်ပေးပါ...")
+            progress_bar = st.progress(0)
+            
+            try:
+                client = Client("ZeroGPU-Explorers/Text-to-Video")
+                
+                for idx, prompt in enumerate(scenes):
+                    st.write(f"🎬 Scene {idx+1}/{len(scenes)} ကို ရိုက်ကူးနေပါသည်...")
+                    
+                    # Hugging Face Free Text-to-Video Call
+                    result = client.predict(prompt=prompt, api_name="/generate")
+                    
+                    # Temp ထဲသို့ MP4 အဖြစ် သိမ်းဆည်းခြင်း
+                    clip_path = os.path.join(temp_dir, f"clip_{idx}.mp4")
+                    shutil.copy(result, clip_path)
+                    video_files.append(clip_path)
+                    
+                    progress_bar.progress(int(((idx + 1) / len(scenes)) * 80))
+                
+                # FFmpeg ဖြင့် ဗီဒီယိုများကို ပေါင်းစပ်ခြင်း
+                st.info("🎬 Clip အားလုံးကို ဗီဒီယို ၁ ပုဒ်တည်းဖြစ်အောင် အချောသတ် ပေါင်းစပ်နေပါသည်။...")
+                
+                list_file_path = os.path.join(temp_dir, "files.txt")
+                with open(list_file_path, "w") as f:
+                    for vf in video_files:
+                        f.write(f"file '{vf}'\n")
+                
+                output_final_path = os.path.join(temp_dir, "final_full_movie.mp4")
+                
+                (
+                    ffmpeg
+                    .input(list_file_path, format='concat', safe=0)
+                    .output(output_final_path, c='copy')
+                    .run(overwrite_output=True, quiet=True)
+                )
+                
+                progress_bar.progress(100)
+                st.success("✨ ၁ မိနစ်စာ 3D ဗီဒီယို အပြည့်အစုံ ထွက်ရှိလာပါပြီ။")
+                
+                st.video(output_final_path)
+                
+                with open(output_final_path, "rb") as f:
+                    st.download_button(
+                        label="📥 ဗီဒီယိုအပြည့်အစုံ (Full MP4) ဒေါင်းလုဒ်ယူရန်",
+                        data=f.read(),
+                        file_name="3d_full_story.mp4",
+                        mime="video/mp4"
+                    )
+                    
+            except Exception as e:
+                st.error(f"Error တက်သွားပါသည် (Server ကျနေပါက ပြန်စမ်းပေးပါ): {e}")
+
+# ---------------------------------------------------------
+# TAB 2: Free Voice Generator
+# ---------------------------------------------------------
+with tab2:
+    st.subheader("🔊 Free AI Voice Generator")
+    tts_text = st.text_area("အသံပြောင်းရန် စာသား ရေးပါ:", value="Do you hear that scary noise? Run quickly!")
     
     if st.button("🚀 AI Audio ဖိုင် ထုတ်ယူမည်"):
         if tts_text.strip():
             async def generate_speech():
-                communicate = edge_tts.Communicate(tts_text, selected_voice)
+                communicate = edge_tts.Communicate(tts_text, "en-US-ChristopherNeural")
                 with tempfile.NamedTemporaryFile(delete=False, suffix=".mp3") as tmp_mp3:
                     await communicate.save(tmp_mp3.name)
                     return tmp_mp3.name
             
-            with st.spinner("⏳ AI အသံဖိုင် ဖန်တီးနေပါသည်။..."):
-                try:
-                    audio_path = asyncio.run(generate_speech())
-                    st.success("✨ အသံဖိုင် ထွက်ရှိလာပါပြီ။")
-                    st.audio(audio_path)
-                    
-                    with open(audio_path, "rb") as f:
-                        st.download_button(
-                            label="📥 MP3 Audio ဒေါင်းလုဒ်ရယူရန်",
-                            data=f.read(),
-                            file_name="ai_voice.mp3",
-                            mime="audio/mp3"
-                        )
-                except Exception as e:
-                    st.error(f"Error: {e}")
-        else:
-            st.warning("စာသား ထည့်သွင်းပေးပါခင်ဗျာ။")
-
-# ---------------------------------------------------------
-# TAB 2: 3D Motion Video Generation (Text-to-Video)
-# ---------------------------------------------------------
-with tab2:
-    st.subheader("📝 3D Motion Prompt ရေးပါ")
-    st.info("3D ဇာတ်ကောင် လှုပ်ရှားမှုများကို အကန့်အသတ်မရှိ အခမဲ့ ထုတ်နိုင်ပါသည်။")
-    
-    prompt = st.text_area(
-        "Prompt (English)-",
-        value="A 3D Pixar style character walking happily and eating food, highly detailed, smooth 3d animation",
-        height=100
-    )
-    
-    if st.button("🚀 Free 3D Motion Video ဖန်တီးမည်"):
-        if not prompt.strip():
-            st.warning("Prompt ထည့်သွင်းပေးပါခင်ဗျာ။")
-        else:
             try:
-                st.info("⏳ Hugging Face Free Server တွင် 3D Video ကို Render လုပ်နေပါသည်။ စက္ကန့် ၄၀ ခန့် စောင့်ပေးပါ...")
-                client = Client("ZeroGPU-Explorers/Text-to-Video")
-                result = client.predict(
-                    prompt=prompt,
-                    api_name="/generate"
-                )
-                
-                # MP4 file path သို့ သေချာ ပြောင်းလဲခြင်း
-                mp4_path = tempfile.NamedTemporaryFile(delete=False, suffix=".mp4").name
-                shutil.copy(result, mp4_path)
-                
-                st.success("✨ 3D Video ထုတ်လုပ်မှု အောင်မြင်ပါသည်။")
-                st.video(mp4_path)
-                
-                with open(mp4_path, "rb") as f:
-                    st.download_button(
-                        label="📥 MP4 ဗီဒီယို ဒေါင်းလုဒ်ရယူရန်",
-                        data=f.read(),
-                        file_name="3d_motion_video.mp4",
-                        mime="video/mp4"
-                    )
+                audio_path = asyncio.run(generate_speech())
+                st.success("✨ အသံဖိုင် ရရှိပါပြီ။")
+                st.audio(audio_path)
             except Exception as e:
-                st.error(f"Error တက်သွားပါသည်: {e}")
-
-# ---------------------------------------------------------
-# TAB 3: Free Talking Avatar (SadTalker Engine)
-# ---------------------------------------------------------
-with tab3:
-    st.subheader("📸 ဓာတ်ပုံ သို့မဟုတ် 3D Character ကို ပါးစပ် လှုပ်ရှားခိုင်းမည်")
-    st.info("Tab 1 မှ ရလာသော MP3 အသံဖိုင် သို့မဟုတ် ကိုယ်ပိုင် အသံဖိုင် တင်၍ ပါးစပ် လှုပ်ရှားခိုင်းနိုင်ပါသည်။")
-    
-    img_file = st.file_uploader("3D Character ပုံ တင်ပါ (JPG/PNG)-", type=["jpg", "png", "jpeg"])
-    audio_file = st.file_uploader("စကားပြော Audio ဖိုင် တင်ပါ (MP3/WAV)-", type=["mp3", "wav"])
-    
-    if st.button("🚀 Free Lip-Sync Video ဖန်တီးမည်"):
-        if not img_file or not audio_file:
-            st.warning("⚠️ ပုံနှင့် Audio ဖိုင် နှစ်ခုစလုံး တင်ပေးရန် လိုအပ်ပါသည်။")
-        else:
-            try:
-                st.info("⏳ AI မှ ပုံနှင့် အသံကို ချိတ်ဆက်နေပါသည်။ ခဏစောင့်ပေးပါ...")
-                
-                with tempfile.NamedTemporaryFile(delete=False, suffix=".png") as tmp_img:
-                    tmp_img.write(img_file.getvalue())
-                    img_path = tmp_img.name
-
-                with tempfile.NamedTemporaryFile(delete=False, suffix=".wav") as tmp_aud:
-                    tmp_aud.write(audio_file.getvalue())
-                    aud_path = tmp_aud.name
-
-                client = Client("vinthony/SadTalker")
-                result = client.predict(
-                    source_image=handle_file(img_path),
-                    driven_audio=handle_file(aud_path),
-                    preprocess="crop",
-                    still_mode=True,
-                    use_enhancer=False,
-                    batch_size=1,
-                    size=256,
-                    pose_style=0,
-                    facerender="faceidness",
-                    exp_weight=1,
-                    use_ref_video=False,
-                    ref_video=None,
-                    ref_info="pose",
-                    use_idle_mode=False,
-                    length_of_pose=0,
-                    api_name="/generate"
-                )
-                
-                # Raw output မှ MP4 ဖိုင်ဖြစ်အောင် တိုက်ရိုက် ကူးယူခြင်း
-                raw_video_path = result[0] if isinstance(result, tuple) or isinstance(result, list) else result
-                mp4_out_path = tempfile.NamedTemporaryFile(delete=False, suffix=".mp4").name
-                shutil.copy(raw_video_path, mp4_out_path)
-                
-                st.success("✨ Lip-Sync Video အောင်မြင်စွာ ထုတ်ပြီးပါပြီ။")
-                st.video(mp4_out_path)
-                
-                with open(mp4_out_path, "rb") as f:
-                    st.download_button(
-                        label="📥 Lip-Sync MP4 Video ဒေါင်းလုဒ်ရယူရန်",
-                        data=f.read(),
-                        file_name="lipsync_avatar.mp4",
-                        mime="video/mp4"
-                    )
-                
-                os.remove(img_path)
-                os.remove(aud_path)
-
-            except Exception as e:
-                st.error(f"Error တက်သွားပါသည်: {e}")
+                st.error(f"Error: {e}")
