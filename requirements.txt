@@ -1,5 +1,6 @@
 streamlit
 gradio_client
 requests
+ffmpeg-python
 edge-tts
 asyncio
