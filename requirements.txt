@@ -1,6 +1,1 @@
-streamlit
-moviepy==1.0.3
-Pillow
-edge-tts
-numpy
-requests
+moviepy
