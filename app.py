@@ -13,9 +13,9 @@ if not API_KEY:
     st.error("⚠️ Streamlit Secrets ထဲမှာ `DID_API_KEY` ရှာမတွေ့ပါ။ Secrets ထဲတွင် API Key သေချာ ထည့်သွင်းပေးပါ။")
     st.stop()
 
-# D-ID လက်ခံနိုင်သော အများပြည်သူကြည့်နိုင်သည့် Direct .jpg Link များ
-CHAR1_IMAGE = "https://upload.wikimedia.org/wikipedia/commons/thumb/4/48/Outdoors-man-portrait_%28cropped%29.jpg/600px-Outdoors-man-portrait_%28cropped%29.jpg"
-CHAR2_IMAGE = "https://upload.wikimedia.org/wikipedia/commons/thumb/a/a8/Woman_in_the_sunset_%28cropped%29.jpg/600px-Woman_in_the_sunset_%28cropped%29.jpg"
+# D-ID Official Presenter IDs (3D Cartoons)
+CHAR1_ID = "matt"
+CHAR2_ID = "amy"
 
 dialogue_text = st.text_area(
     "📝 စကားပြော Dialogue ရေးပါ (အင်္ဂလိပ် သို့မဟုတ် မြန်မာ)-",
@@ -23,7 +23,7 @@ dialogue_text = st.text_area(
     height=150
 )
 
-def create_talk(image_url, text):
+def create_talk_with_presenter(presenter_id, text):
     url = "https://api.d-id.com/talks"
     headers = {
         "Authorization": f"Basic {API_KEY}",
@@ -35,7 +35,7 @@ def create_talk(image_url, text):
             "input": text,
             "provider": {"type": "microsoft", "voice_id": "en-US-GuyNeural"}
         },
-        "source_url": image_url
+        "presenter_id": presenter_id
     }
     
     response = requests.post(url, json=payload, headers=headers)
@@ -58,9 +58,9 @@ if st.button("🚀 AI 3D Video ဖန်တီးမည်"):
             clean_text = line.split(":", 1)[1].strip() if ":" in line else line
             is_char2 = ("Character 2" in line or "ဇာတ်ကောင် ၂" in line)
             
-            img_url = CHAR2_IMAGE if is_char2 else CHAR1_IMAGE
+            p_id = CHAR2_ID if is_char2 else CHAR1_ID
             
-            res = create_talk(img_url, clean_text)
+            res = create_talk_with_presenter(p_id, clean_text)
             
             if "id" in res:
                 talk_id = res["id"]
