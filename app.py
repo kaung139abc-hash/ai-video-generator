@@ -75,10 +75,10 @@ if st.button("🚀 Horror 3D Video အပြီးသတ် ဖန်တီး�
         progress_bar = st.progress(0)
         
         try:
-            token_val = hf_token.strip() if hf_token.strip() else None
-            # Gradio Client ချိတ်ဆက်မှုတွင် Token ထည့်သွင်းပုံ ပြင်ဆင်ထားပါသည်
-            headers = {"Authorization": f"Bearer {token_val}"} if token_val else None
-            client = Client("KingNish/Video-Crafter", headers=headers)
+            token_val = hf_token.strip() if hf_token and hf_token.strip() else None
+            
+            # Hugging Face Public API မှ ဗီဒီယို ထုတ်ပေးသည့် Space သို့ ချိတ်ဆက်ခြင်း
+            client = Client("damo-vilab/modelscope-text-to-video-synthesis", hf_token=token_val)
             
             async def make_audio(text, profile, output_path):
                 communicate = edge_tts.Communicate(
@@ -94,8 +94,8 @@ if st.button("🚀 Horror 3D Video အပြီးသတ် ဖန်တီး�
                 
                 # 1. Render Video
                 video_raw = client.predict(
-                    prompt=item["prompt"],
-                    api_name="/generate"
+                    item["prompt"],
+                    api_name="/predict"
                 )
                 
                 clip_video_path = os.path.join(temp_dir, f"v_{idx}.mp4")
