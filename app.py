@@ -36,28 +36,15 @@ def fetch_3d_face_image(char_name, save_path):
         f.write(res.content)
 
 def generate_free_lipsync(image_path, audio_path, output_video_path):
-    """HuggingFace Free SadTalker Space ဖြင့် ပါးစပ်လှုပ် Video ဖန်တီးခြင်း"""
-    client = Client("vinthony/SadTalker")
+    """အလုပ်လုပ်နေသော Free Wav2Lip Space သို့ ချိတ်ဆက်ခြင်း"""
+    client = Client("fffiloni/Wav2Lip")
     result = client.predict(
-        source_image=handle_file(image_path),
-        driven_audio=handle_file(audio_path),
-        preprocess="full",
-        still=True,
-        enhancer="gfpgan",
-        batch_size=1,
-        size=256,
-        pose_style=0,
-        facerender="faceid",
-        exp_weight=1.0,
-        use_ref_video=False,
-        ref_video=None,
-        ref_info="pose",
-        use_idle_mode=False,
-        length_of_pose=0,
-        api_name="/generate"
+        face=handle_file(image_path),
+        audio=handle_file(audio_path),
+        api_name="/predict"
     )
-    # result[0] တွင် ရရှိလာသော Video Path ကို ယူပါမည်
-    video_tmp_path = result[0] if isinstance(result, tuple) else result
+    
+    video_tmp_path = result if isinstance(result, str) else result[0]
     os.system(f"cp '{video_tmp_path}' '{output_video_path}'")
 
 if st.button("🚀 ၁၀၀% Free 3D Lip-Sync Video စတင်ထုတ်မည်"):
@@ -80,7 +67,7 @@ if st.button("🚀 ၁၀၀% Free 3D Lip-Sync Video စတင်ထုတ်မ
                 if ":" in line:
                     char_name, speech = line.split(":", 1)
                 elif "：" in line:
-                    char_name, speech = line.split("：", 1)
+                    char_name, speech = line.split("：" , 1)
                 else:
                     char_name, speech = "ဇာတ်ကြောင်းပြော", line
                 
