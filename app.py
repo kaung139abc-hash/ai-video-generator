@@ -90,7 +90,7 @@ if st.button("🚀 Horror 3D Video အပြီးသတ် ဖန်တီး�
                     item["prompt"],                         # Motion Prompt
                     "bad quality, blurry, low resolution",  # Negative Prompt
                     "mm_sd_v15_v2.ckpt",                    # Motion Module
-                    "rcnzCartoon_v10.safetensors",          # Base Model (3D Cartoon Style)
+                    "rcnzCartoon_v10.safetensors",          # Base Model
                     "",                                     # LoRA
                     0.8,                                    # LoRA Alpha
                     16,                                     # Steps
@@ -103,7 +103,6 @@ if st.button("🚀 Horror 3D Video အပြီးသတ် ဖန်တီး�
                 
                 clip_video_path = os.path.join(temp_dir, f"v_{idx}.mp4")
                 
-                # Handle returned structure from Gradio Client
                 if isinstance(video_raw, (list, tuple)):
                     video_file_path = video_raw[0]
                 else:
@@ -152,5 +151,5 @@ if st.button("🚀 Horror 3D Video အပြီးသတ် ဖန်တီး�
                     mime="video/mp4"
                 )
 
-    except Exception as e:
-        st.error(f"Error တက်သွားပါသည်: {e}")
+        except Exception as e:
+            st.error(f"Error တက်သွားပါသည်: {e}")
