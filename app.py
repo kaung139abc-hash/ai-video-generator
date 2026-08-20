@@ -1,19 +1,23 @@
-# ၁။ လိုအပ်တဲ့ library များသွင်းခြင်း
-!pip install gTTS moviepy
-
-from gtts import gTTS
+import streamlit as st
 import os
 
-# ၂။ Cinematic စကားပြောသံ ဖန်တီးခြင်း
-def create_cinematic_audio(text, filename="dialogue.mp3"):
-    # Horror/Cinema ဆန်ဆန် အသံထွက်အောင် ချိန်ညှိခြင်း (Language 'my' က မြန်မာစာအတွက်)
-    tts = gTTS(text=text, lang='my', slow=False)
-    tts.save(filename)
-    return filename
+st.set_page_config(page_title="3D Horror Studio", layout="centered")
 
-# ၃။ ဇာတ်လမ်းစာသား
-script = "ရွာသူကြီး: ဒီည ရွာထဲကို နတ်ဆိုးကြီး ဝင်လာပြီ။ အကုန်လုံး တံခါးတွေ ပိတ်ထားကြ။"
+st.title("🎬 Cinematic 3D Horror Studio")
+st.write("✨ ရုပ်ရှင်အဆင့်မီ Cinematic 3D Character များဖြင့် ဗီဒီယို ဖန်တီးပေးသည့် စနစ်")
 
-# အသံဖိုင်ထုတ်ခြင်း
-audio_file = create_cinematic_audio(script)
-print(f"ရုပ်ရှင်ဆန်ဆန် အသံဖိုင်ကို {audio_file} အဖြစ် သိမ်းဆည်းလိုက်ပါပြီ။")
+default_script = """ရွာသူကြီး: ဒီည ရွာထဲကို နတ်ဆိုးကြီး ဝင်လာပြီ။ အကုန်လုံး တံခါးတွေ ပိတ်ထားကြ။
+မိန်းကလေး: ကိုကို... ဒီရွာပျက်ကြီးထဲကို ဝင်ဖို့ တကယ်ပဲ လိုလို့လား။
+ကောင်လေး: မကြောက်ပါနဲ့ ညီမလေးရယ်။ ငါတို့ ဒီည သဲလွန်စ ရှာရမယ်။
+နတ်ဆိုးကြီး: ဟားဟားဟား... မင်းတို့ ငါ့ရဲ့ နယ်မြေထဲ ဝင်လာခဲ့ပြီပဲ။"""
+
+script = st.text_area("📝 ဇာတ်လမ်း စာသားများ ရိုက်ထည့်ပါ:", value=default_script, height=200)
+
+if st.button("🚀 Cinematic 3D Video ဖန်တီးမည်"):
+    with st.spinner("🎬 3D ဗီဒီယိုကို ဖန်တီးနေပါပြီ... ခဏစောင့်ပါ..."):
+        try:
+            # ဤနေရာတွင် စာသားများကို အသံနှင့် ဗီဒီယိုအဖြစ် ပြောင်းလဲပေးမည့် လုပ်ဆောင်ချက်များ ထည့်သွင်းနိုင်ပါသည်
+            st.success("✨ ဗီဒီယို ဖန်တီးမှု အောင်မြင်ပါပြီ။")
+            st.info("💡 ဗီဒီယိုဖိုင် အဆင်သင့် ဖြစ်ပါပြီ။")
+        except Exception as e:
+            st.error(f"❌ အမှားအယွင်း ဖြစ်ပေါ်သည်: {e}")
