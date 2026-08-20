@@ -24,7 +24,6 @@ VOICE_PROFILES = {
 
 st.subheader("🎬 Horror Scene များ ရိုက်ကူးရန်")
 
-# စကားပြောနိုင်မည့် Scene အရေအတွက်
 num_scenes = st.number_input("ဖန်တီးချင်သော Scene အရေအတွက် ရွေးပါ-", min_value=1, max_value=10, value=6)
 
 scenes_input = []
@@ -72,7 +71,7 @@ if st.button("🚀 Horror 3D Video အပြီးသတ် ဖန်တီး�
         progress_bar = st.progress(0)
         
         try:
-            client = Client("fffiloni/CogVideoX-5B-Space")
+            client = Client("TencentARC/AnimateDiff")
             
             async def make_audio(text, profile, output_path):
                 communicate = edge_tts.Communicate(
@@ -86,10 +85,31 @@ if st.button("🚀 Horror 3D Video အပြီးသတ် ဖန်တီး�
             for idx, item in enumerate(valid_scenes):
                 st.write(f"🎬 Scene {idx+1}/{len(valid_scenes)} ကို ဖန်တီးနေပါသည်...")
                 
-                # 1. Render 3D Video
-                video_raw = client.predict(prompt=item["prompt"], api_name="/generate")
+                # 1. Render 3D Video using AnimateDiff parameters
+                video_raw = client.predict(
+                    item["prompt"],                         # Motion Prompt
+                    "bad quality, blurry, low resolution",  # Negative Prompt
+                    "mm_sd_v15_v2.ckpt",                    # Motion Module
+                    "rcnzCartoon_v10.safetensors",          # Base Model (3D Cartoon Style)
+                    "",                                     # LoRA
+                    0.8,                                    # LoRA Alpha
+                    16,                                     # Steps
+                    7.5,                                    # Guidance Scale
+                    512,                                    # Width
+                    512,                                    # Height
+                    16,                                     # Frames
+                    api_name="/generate"
+                )
+                
                 clip_video_path = os.path.join(temp_dir, f"v_{idx}.mp4")
-                shutil.copy(video_raw, clip_video_path)
+                
+                # Handle returned structure from Gradio Client
+                if isinstance(video_raw, (list, tuple)):
+                    video_file_path = video_raw[0]
+                else:
+                    video_file_path = video_raw
+                    
+                shutil.copy(video_file_path, clip_video_path)
                 
                 # 2. Generate Character Specific Audio
                 clip_audio_path = os.path.join(temp_dir, f"a_{idx}.mp3")
@@ -106,7 +126,7 @@ if st.button("🚀 Horror 3D Video အပြီးသတ် ဖန်တီး�
                 progress_bar.progress(int(((idx + 1) / len(valid_scenes)) * 80))
                 
             # 4. Concatenate All Scenes into One Video
-            st.info("🎬 Scene အားလုံးကို ဇာတ်လမ်းတစ်ပုဒ်တည်းဖြစ်အောင် ပေါင်းစပ်နေပါသည်...")
+            st.info("🎬 Scene အားလုံးကို ဇာတ်လမ်းတစ်ပုဒ်တည်းဖြစ်အောင် ပေါင်းစပ်နေပါသည်။...")
             list_file_path = os.path.join(temp_dir, "files.txt")
             with open(list_file_path, "w") as f:
                 for mc in merged_clips:
@@ -132,5 +152,5 @@ if st.button("🚀 Horror 3D Video အပြီးသတ် ဖန်တီး�
                     mime="video/mp4"
                 )
 
-        except Exception as e:
-            st.error(f"Error တက်သွားပါသည်: {e}")
+    except Exception as e:
+        st.error(f"Error တက်သွားပါသည်: {e}")
