@@ -20,10 +20,10 @@ if st.button("🚀 Cinematic 3D Video ဖန်တီးမည်"):
         st.error("⚠️ ဘေးဘက် Sidebar (>) တွင် Colab URL အရင်ထည့်ပေးပါခင်ဗျာ။")
     else:
         try:
-            with st.spinner("🎬 Colab GPU ဖြင့် ဗီဒီယို ထုတ်လုပ်နေပါသည်... ခဏစောင့်ပါ..."):
+            with st.spinner("🎬 Colab GPU ဖြင့် ဗီဒီယို ထုတ်လုပ်နေပါသည်... (အချိန်အနည်းငယ်ကြာတတ်ပါသည်)..."):
                 client = Client(colab_url.strip())
-                # Gradio API မည်သည့် နာမည်ဖြင့် ရောက်နေသည်ဖြစ်စေ တိုက်ရိုက် ခေါ်ယူခြင်း
-                result = client.predict(script)
+                # Timeout ကို စက္ကန့် ၆၀၀ (၁၀ မိနစ်) ထိ တိုးမြှင့်ထားခြင်း
+                result = client.predict(script, timeout=600)
                 st.success("✨ ဗီဒီယို ဖန်တီးမှု အောင်မြင်ပါပြီ။")
                 st.video(result)
                 with open(result, "rb") as f:
