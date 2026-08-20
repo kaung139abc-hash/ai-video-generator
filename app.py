@@ -11,9 +11,6 @@ st.set_page_config(page_title="3D AI Horror Studio", layout="centered")
 st.title("👻 3D AI Horror Studio (7 Characters)")
 st.caption("✨ ရွာသူကြီး၊ ကောင်လေး၊ ရွာသူရွာသား ၄ ယောက် နှင့် နတ်ဆိုး အပါအဝင် ၇ ယောက် စကားပြောနိုင်သော စနစ်")
 
-# Hugging Face Token ယူခြင်း
-hf_token = st.secrets.get("HF_TOKEN", "")
-
 VOICE_PROFILES = {
     "👴 ရွာသူကြီး (Village Chief)": {"voice": "my-MM-ThihaNeural", "pitch": "-10Hz", "rate": "-10%"},
     "🧙‍♂️ ဂါထာမန်တန်စွမ်းအားရှင် ကောင်လေး": {"voice": "my-MM-ThihaNeural", "pitch": "+5Hz", "rate": "+0%"},
@@ -73,9 +70,6 @@ if st.button("🚀 Horror 3D Video အပြီးသတ် ဖန်တီး�
         progress_bar = st.progress(0)
         
         try:
-            # Stable gradio client setup
-            token_val = hf_token.strip() if hf_token and hf_token.strip() else None
-            
             async def make_audio(text, profile, output_path):
                 communicate = edge_tts.Communicate(
                     text=text, 
@@ -85,6 +79,9 @@ if st.button("🚀 Horror 3D Video အပြီးသတ် ဖန်တီး�
                 )
                 await communicate.save(output_path)
 
+            # Public Stable Image Generator Client
+            client = Client("prodia/fast-sdxl")
+
             for idx, item in enumerate(valid_scenes):
                 st.write(f"🎬 Scene {idx+1}/{len(valid_scenes)} အသံနှင့် ဗီဒီယို ဖန်တီးနေပါသည်...")
                 
@@ -92,10 +89,7 @@ if st.button("🚀 Horror 3D Video အပြီးသတ် ဖန်တီး�
                 clip_audio_path = os.path.join(temp_dir, f"a_{idx}.mp3")
                 asyncio.run(make_audio(item["text"], item["voice_profile"], clip_audio_path))
                 
-                # 2. Render Video via HuggingFace Client
-                client = Client("prodia/fast-sdxl", hf_token=token_val) if token_val else Client("prodia/fast-sdxl")
-                
-                # Image/Video Generation API
+                # 2. Render Scene Image
                 img_res = client.predict(
                     item["prompt"],
                     "low quality, worst quality",
