@@ -6,7 +6,6 @@ st.set_page_config(page_title="3D Horror Studio", layout="centered")
 st.title("🎬 Cinematic 3D Horror Studio")
 st.write("✨ ရုပ်ရှင်အဆင့်မီ Cinematic 3D Character များဖြင့် ဗီဒီယို ဖန်တီးပေးသည့် စနစ်")
 
-# Sidebar တွင် Colab URL ထည့်ရန် အကွက် ပြုလုပ်ခြင်း
 colab_url = st.sidebar.text_input("🔗 Colab Gradio URL ထည့်ပါ:", placeholder="https://xxxx.gradio.live")
 
 default_script = """ရွာသူကြီး: ဒီည ရွာထဲကို နတ်ဆိုးကြီး ဝင်လာပြီ။ အကုန်လုံး တံခါးတွေ ပိတ်ထားကြ။
@@ -23,7 +22,8 @@ if st.button("🚀 Cinematic 3D Video ဖန်တီးမည်"):
         try:
             with st.spinner("🎬 Colab GPU ဖြင့် ဗီဒီယို ထုတ်လုပ်နေပါသည်... ခဏစောင့်ပါ..."):
                 client = Client(colab_url)
-                result = client.predict(script, api_name="/predict")
+                # api_name ကို False ထားပေးထားပါသည်
+                result = client.predict(script, api_name=False)
                 st.success("✨ ဗီဒီယို ဖန်တီးမှု အောင်မြင်ပါပြီ။")
                 st.video(result)
                 with open(result, "rb") as f:
