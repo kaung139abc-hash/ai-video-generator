@@ -27,8 +27,8 @@ if st.button("🚀 ဗီဒီယို စတင်ထုတ်လုပ်မ
                     if not line.strip():
                         continue
 
-                    # gTTS ဖြင့် မြန်မာစာသားကို အသံဖိုင်ပြောင်းခြင်း (သို့မဟုတ် အင်္ဂလိပ်စာသား)
-                    tts = gTTS(text=line, lang='en') # မြန်မာအတွက် lang='my' သို့မဟုတ် lang='en' သုံးနိုင်သည်
+                    # gTTS ဖြင့် စာသားကို အသံဖိုင်ပြောင်းခြင်း
+                    tts = gTTS(text=line, lang='en') # လိုအပ်ပါက lang='my' သို့မဟုတ် lang='en' သုံးနိုင်သည်
                     audio_path = f"line_{idx}.mp3"
                     tts.save(audio_path)
                     
