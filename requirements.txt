@@ -1,7 +1,11 @@
-streamlit
+google-generativeai
 elevenlabs
 moviepy
 requests
 imageio
 imageio-ffmpeg
 google-generativeai
+streamlit
+requests
+moviepy
+
