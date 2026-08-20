@@ -1,11 +1,10 @@
 import streamlit as st
-from gradio_client import Client
 import tempfile
 import os
 import ffmpeg
-import shutil
 import asyncio
 import edge_tts
+import requests
 
 st.set_page_config(page_title="3D AI Horror Studio", layout="centered")
 st.title("👻 3D AI Horror Studio (7 Characters)")
@@ -79,9 +78,6 @@ if st.button("🚀 Horror 3D Video အပြီးသတ် ဖန်တီး�
                 )
                 await communicate.save(output_path)
 
-            # Public Stable Image Generator Client
-            client = Client("prodia/fast-sdxl")
-
             for idx, item in enumerate(valid_scenes):
                 st.write(f"🎬 Scene {idx+1}/{len(valid_scenes)} အသံနှင့် ဗီဒီယို ဖန်တီးနေပါသည်...")
                 
@@ -89,29 +85,29 @@ if st.button("🚀 Horror 3D Video အပြီးသတ် ဖန်တီး�
                 clip_audio_path = os.path.join(temp_dir, f"a_{idx}.mp3")
                 asyncio.run(make_audio(item["text"], item["voice_profile"], clip_audio_path))
                 
-                # 2. Render Scene Image
-                img_res = client.predict(
-                    item["prompt"],
-                    "low quality, worst quality",
-                    api_name="/instant_generate"
-                )
+                # 2. Render High Quality 3D Scene Image via Direct API (Zero Auth Needed)
+                clean_prompt = requests.utils.quote(f"3D render style, {item['prompt']}")
+                img_url = f"https://image.pollinations.ai/prompt/{clean_prompt}?width=1280&height=720&seed={idx+123}&nologo=true"
                 
-                clip_img_path = img_res if isinstance(img_res, str) else img_res[0]
+                img_response = requests.get(img_url, timeout=30)
+                clip_img_path = os.path.join(temp_dir, f"img_{idx}.jpg")
+                with open(clip_img_path, "wb") as f:
+                    f.write(img_response.content)
+                
+                # 3. Merge Scene Image and Voice Audio into MP4 Video
                 scene_output_path = os.path.join(temp_dir, f"scene_{idx}_merged.mp4")
-                
-                # Convert Image + Audio to Video Scene using FFmpeg
                 (
                     ffmpeg
-                    .input(clip_img_path, loop=1, t=4)
+                    .input(clip_img_path, loop=1)
                     .input(clip_audio_path)
-                    .output(scene_output_path, vcodec='libx264', acodec='aac', shortest=None, pix_fmt='yuv420p')
+                    .output(scene_output_path, vcodec='libx264', acodec='aac', shortest=None, pix_fmt='yuv420p', vf='scale=1280:720')
                     .run(overwrite_output=True, quiet=True)
                 )
                 
                 merged_clips.append(scene_output_path)
                 progress_bar.progress(int(((idx + 1) / len(valid_scenes)) * 80))
                 
-            # 3. Concatenate All Scenes into Final Video
+            # 4. Concatenate All Scenes into Final Full Video
             st.info("🎬 Scene အားလုံးကို ဇာတ်လမ်းတစ်ပုဒ်တည်းဖြစ်အောင် ပေါင်းစပ်နေပါသည်။...")
             list_file_path = os.path.join(temp_dir, "files.txt")
             with open(list_file_path, "w") as f:
