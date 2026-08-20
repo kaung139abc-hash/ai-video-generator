@@ -2,3 +2,5 @@ streamlit
 elevenlabs
 moviepy
 requests
+imageio
+imageio-ffmpeg
