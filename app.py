@@ -11,7 +11,11 @@ st.set_page_config(page_title="3D AI Horror Video Studio", layout="centered")
 st.title("👻 3D AI Horror Studio (7 Characters)")
 st.caption("✨ ရွာသူကြီး၊ ကောင်လေး၊ ရွာသူရွာသား ၄ ယောက် နှင့် နတ်ဆိုး အပါအဝင် ၇ ယောက် စကားပြောနိုင်သော စနစ်")
 
-# ဇာတ်ကောင် ၇ ယောက်အတွက် အသံ Profiles များ
+# Streamlit Secrets မှ HF_TOKEN ကို အလိုအလျောက် ယူခြင်း (မရှိပါက Sidebar မှ ဖတ်မည်)
+hf_token = st.secrets.get("HF_TOKEN", "")
+if not hf_token:
+    hf_token = st.sidebar.text_input("🔑 Hugging Face Token:", type="password")
+
 VOICE_PROFILES = {
     "👴 ရွာသူကြီး (Village Chief)": {"voice": "my-MM-ThihaNeural", "pitch": "-10Hz", "rate": "-10%"},
     "🧙‍♂️ ဂါထာမန်တန်စွမ်းအားရှင် ကောင်လေး": {"voice": "my-MM-ThihaNeural", "pitch": "+5Hz", "rate": "+0%"},
@@ -71,7 +75,8 @@ if st.button("🚀 Horror 3D Video အပြီးသတ် ဖန်တီး�
         progress_bar = st.progress(0)
         
         try:
-            client = Client("TencentARC/AnimateDiff")
+            token_param = hf_token.strip() if hf_token.strip() else None
+            client = Client("KingNish/Video-Crafter", hf_token=token_param)
             
             async def make_audio(text, profile, output_path):
                 communicate = edge_tts.Communicate(
@@ -85,36 +90,21 @@ if st.button("🚀 Horror 3D Video အပြီးသတ် ဖန်တီး�
             for idx, item in enumerate(valid_scenes):
                 st.write(f"🎬 Scene {idx+1}/{len(valid_scenes)} ကို ဖန်တီးနေပါသည်...")
                 
-                # 1. Render 3D Video using AnimateDiff parameters
+                # 1. Render Video using Public Space
                 video_raw = client.predict(
-                    item["prompt"],                         # Motion Prompt
-                    "bad quality, blurry, low resolution",  # Negative Prompt
-                    "mm_sd_v15_v2.ckpt",                    # Motion Module
-                    "rcnzCartoon_v10.safetensors",          # Base Model
-                    "",                                     # LoRA
-                    0.8,                                    # LoRA Alpha
-                    16,                                     # Steps
-                    7.5,                                    # Guidance Scale
-                    512,                                    # Width
-                    512,                                    # Height
-                    16,                                     # Frames
+                    prompt=item["prompt"],
                     api_name="/generate"
                 )
                 
                 clip_video_path = os.path.join(temp_dir, f"v_{idx}.mp4")
-                
-                if isinstance(video_raw, (list, tuple)):
-                    video_file_path = video_raw[0]
-                else:
-                    video_file_path = video_raw
-                    
+                video_file_path = video_raw[0] if isinstance(video_raw, (list, tuple)) else video_raw
                 shutil.copy(video_file_path, clip_video_path)
                 
-                # 2. Generate Character Specific Audio
+                # 2. Generate Character Audio
                 clip_audio_path = os.path.join(temp_dir, f"a_{idx}.mp3")
                 asyncio.run(make_audio(item["text"], item["voice_profile"], clip_audio_path))
                 
-                # 3. Merge Video & Audio using FFmpeg
+                # 3. Merge Video & Audio
                 scene_output_path = os.path.join(temp_dir, f"scene_{idx}_merged.mp4")
                 video_in = ffmpeg.input(clip_video_path)
                 audio_in = ffmpeg.input(clip_audio_path)
@@ -124,7 +114,7 @@ if st.button("🚀 Horror 3D Video အပြီးသတ် ဖန်တီး�
                 
                 progress_bar.progress(int(((idx + 1) / len(valid_scenes)) * 80))
                 
-            # 4. Concatenate All Scenes into One Video
+            # 4. Concatenate All Scenes
             st.info("🎬 Scene အားလုံးကို ဇာတ်လမ်းတစ်ပုဒ်တည်းဖြစ်အောင် ပေါင်းစပ်နေပါသည်။...")
             list_file_path = os.path.join(temp_dir, "files.txt")
             with open(list_file_path, "w") as f:
