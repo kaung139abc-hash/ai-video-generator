@@ -11,7 +11,7 @@ st.set_page_config(page_title="3D AI Horror Video Studio", layout="centered")
 st.title("👻 3D AI Horror Studio (7 Characters)")
 st.caption("✨ ရွာသူကြီး၊ ကောင်လေး၊ ရွာသူရွာသား ၄ ယောက် နှင့် နတ်ဆိုး အပါအဝင် ၇ ယောက် စကားပြောနိုင်သော စနစ်")
 
-# Streamlit Secrets မှ HF_TOKEN ကို အလိုအလျောက် ယူခြင်း (မရှိပါက Sidebar မှ ဖတ်မည်)
+# Secrets သို့မဟုတ် Sidebar မှ Hugging Face Token ယူခြင်း
 hf_token = st.secrets.get("HF_TOKEN", "")
 if not hf_token:
     hf_token = st.sidebar.text_input("🔑 Hugging Face Token:", type="password")
@@ -75,8 +75,10 @@ if st.button("🚀 Horror 3D Video အပြီးသတ် ဖန်တီး�
         progress_bar = st.progress(0)
         
         try:
-            token_param = hf_token.strip() if hf_token.strip() else None
-            client = Client("KingNish/Video-Crafter", hf_token=token_param)
+            token_val = hf_token.strip() if hf_token.strip() else None
+            # Gradio Client ချိတ်ဆက်မှုတွင် Token ထည့်သွင်းပုံ ပြင်ဆင်ထားပါသည်
+            headers = {"Authorization": f"Bearer {token_val}"} if token_val else None
+            client = Client("KingNish/Video-Crafter", headers=headers)
             
             async def make_audio(text, profile, output_path):
                 communicate = edge_tts.Communicate(
@@ -90,7 +92,7 @@ if st.button("🚀 Horror 3D Video အပြီးသတ် ဖန်တီး�
             for idx, item in enumerate(valid_scenes):
                 st.write(f"🎬 Scene {idx+1}/{len(valid_scenes)} ကို ဖန်တီးနေပါသည်...")
                 
-                # 1. Render Video using Public Space
+                # 1. Render Video
                 video_raw = client.predict(
                     prompt=item["prompt"],
                     api_name="/generate"
