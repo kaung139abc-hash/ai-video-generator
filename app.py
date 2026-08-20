@@ -24,17 +24,16 @@ if st.button("🚀 ရုပ်ရှင်ဇာတ်ကား ဖန်တီ
     else:
         with st.spinner("🎬 AI ဖြင့် ဇာတ်ကောင် အမူအရာနှင့် အသံများကို တွဲစပ်နေပါသည် (အချိန်အနည်းငယ်ကြာတတ်သည်)..."):
             try:
-                # URL ကို စနစ်တကျ သန့်စင်ခြင်း (စာလုံးအသေးပြောင်းခြင်းနှင့် space ဖယ်ရှားခြင်း)
                 clean_url = colab_url.strip()
                 if clean_url.startswith("Https://"):
                     clean_url = "https://" + clean_url[8:]
                 
                 client = Client(clean_url)
-                result_video = client.predict(script_text=script, api_name="/predict", timeout=900)
+                # api_name ကို ဖြုတ်ပြီး တိုက်ရိုက်ခေါ်ယူခြင်း
+                result_video = client.predict(script_text=script, timeout=900)
                 
                 st.success("✨ ရုပ်ရှင်ဇာတ်ကား ဖန်တီးမှု အောင်မြင်ပါပြီ။")
                 
-                # ထွက်လာသော MP4 ဗီဒီယိုကို ပြသခြင်းနှင့် Download ဆွဲခွင့်ပေးခြင်း
                 st.video(result_video)
                 with open(result_video, "rb") as f:
                     st.download_button("📥 MP4 Movie Download", data=f.read(), file_name="Cinematic_Horror.mp4", mime="video/mp4")
