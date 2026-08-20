@@ -7,14 +7,12 @@ import shutil
 import asyncio
 import edge_tts
 
-st.set_page_config(page_title="3D AI Horror Video Studio", layout="centered")
+st.set_page_config(page_title="3D AI Horror Studio", layout="centered")
 st.title("👻 3D AI Horror Studio (7 Characters)")
 st.caption("✨ ရွာသူကြီး၊ ကောင်လေး၊ ရွာသူရွာသား ၄ ယောက် နှင့် နတ်ဆိုး အပါအဝင် ၇ ယောက် စကားပြောနိုင်သော စနစ်")
 
-# Secrets သို့မဟုတ် Sidebar မှ Hugging Face Token ယူခြင်း
+# Hugging Face Token ယူခြင်း
 hf_token = st.secrets.get("HF_TOKEN", "")
-if not hf_token:
-    hf_token = st.sidebar.text_input("🔑 Hugging Face Token:", type="password")
 
 VOICE_PROFILES = {
     "👴 ရွာသူကြီး (Village Chief)": {"voice": "my-MM-ThihaNeural", "pitch": "-10Hz", "rate": "-10%"},
@@ -75,10 +73,8 @@ if st.button("🚀 Horror 3D Video အပြီးသတ် ဖန်တီး�
         progress_bar = st.progress(0)
         
         try:
+            # Stable gradio client setup
             token_val = hf_token.strip() if hf_token and hf_token.strip() else None
-            
-            # Hugging Face Public API မှ ဗီဒီယို ထုတ်ပေးသည့် Space သို့ ချိတ်ဆက်ခြင်း
-            client = Client("damo-vilab/modelscope-text-to-video-synthesis", hf_token=token_val)
             
             async def make_audio(text, profile, output_path):
                 communicate = edge_tts.Communicate(
@@ -90,33 +86,38 @@ if st.button("🚀 Horror 3D Video အပြီးသတ် ဖန်တီး�
                 await communicate.save(output_path)
 
             for idx, item in enumerate(valid_scenes):
-                st.write(f"🎬 Scene {idx+1}/{len(valid_scenes)} ကို ဖန်တီးနေပါသည်...")
+                st.write(f"🎬 Scene {idx+1}/{len(valid_scenes)} အသံနှင့် ဗီဒီယို ဖန်တီးနေပါသည်...")
                 
-                # 1. Render Video
-                video_raw = client.predict(
-                    item["prompt"],
-                    api_name="/predict"
-                )
-                
-                clip_video_path = os.path.join(temp_dir, f"v_{idx}.mp4")
-                video_file_path = video_raw[0] if isinstance(video_raw, (list, tuple)) else video_raw
-                shutil.copy(video_file_path, clip_video_path)
-                
-                # 2. Generate Character Audio
+                # 1. Generate Character Audio First
                 clip_audio_path = os.path.join(temp_dir, f"a_{idx}.mp3")
                 asyncio.run(make_audio(item["text"], item["voice_profile"], clip_audio_path))
                 
-                # 3. Merge Video & Audio
+                # 2. Render Video via HuggingFace Client
+                client = Client("prodia/fast-sdxl", hf_token=token_val) if token_val else Client("prodia/fast-sdxl")
+                
+                # Image/Video Generation API
+                img_res = client.predict(
+                    item["prompt"],
+                    "low quality, worst quality",
+                    api_name="/instant_generate"
+                )
+                
+                clip_img_path = img_res if isinstance(img_res, str) else img_res[0]
                 scene_output_path = os.path.join(temp_dir, f"scene_{idx}_merged.mp4")
-                video_in = ffmpeg.input(clip_video_path)
-                audio_in = ffmpeg.input(clip_audio_path)
                 
-                ffmpeg.output(video_in, audio_in, scene_output_path, vcodec='copy', acodec='aac', shortest=None).run(overwrite_output=True, quiet=True)
+                # Convert Image + Audio to Video Scene using FFmpeg
+                (
+                    ffmpeg
+                    .input(clip_img_path, loop=1, t=4)
+                    .input(clip_audio_path)
+                    .output(scene_output_path, vcodec='libx264', acodec='aac', shortest=None, pix_fmt='yuv420p')
+                    .run(overwrite_output=True, quiet=True)
+                )
+                
                 merged_clips.append(scene_output_path)
-                
                 progress_bar.progress(int(((idx + 1) / len(valid_scenes)) * 80))
                 
-            # 4. Concatenate All Scenes
+            # 3. Concatenate All Scenes into Final Video
             st.info("🎬 Scene အားလုံးကို ဇာတ်လမ်းတစ်ပုဒ်တည်းဖြစ်အောင် ပေါင်းစပ်နေပါသည်။...")
             list_file_path = os.path.join(temp_dir, "files.txt")
             with open(list_file_path, "w") as f:
