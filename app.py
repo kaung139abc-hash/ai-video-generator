@@ -81,12 +81,12 @@ if st.button("🚀 Horror 3D Video အပြီးသတ် ဖန်တီး�
             for idx, item in enumerate(valid_scenes):
                 st.write(f"🎬 Scene {idx+1}/{len(valid_scenes)} အသံနှင့် ဗီဒီယို ဖန်တီးနေပါသည်...")
                 
-                # 1. Generate Character Audio First
+                # 1. Generate Voice Audio
                 clip_audio_path = os.path.join(temp_dir, f"a_{idx}.mp3")
                 asyncio.run(make_audio(item["text"], item["voice_profile"], clip_audio_path))
                 
-                # 2. Render High Quality 3D Scene Image via Direct API (Zero Auth Needed)
-                clean_prompt = requests.utils.quote(f"3D render style, {item['prompt']}")
+                # 2. Render Image via API
+                clean_prompt = requests.utils.quote(f"3D Pixar horror style, {item['prompt']}")
                 img_url = f"https://image.pollinations.ai/prompt/{clean_prompt}?width=1280&height=720&seed={idx+123}&nologo=true"
                 
                 img_response = requests.get(img_url, timeout=30)
@@ -94,20 +94,22 @@ if st.button("🚀 Horror 3D Video အပြီးသတ် ဖန်တီး�
                 with open(clip_img_path, "wb") as f:
                     f.write(img_response.content)
                 
-                # 3. Merge Scene Image and Voice Audio into MP4 Video
+                # 3. Merge Image and Audio via FFmpeg (Fixed syntax)
                 scene_output_path = os.path.join(temp_dir, f"scene_{idx}_merged.mp4")
+                
+                in_img = ffmpeg.input(clip_img_path, loop=1)
+                in_aud = ffmpeg.input(clip_audio_path)
+                
                 (
                     ffmpeg
-                    .input(clip_img_path, loop=1)
-                    .input(clip_audio_path)
-                    .output(scene_output_path, vcodec='libx264', acodec='aac', shortest=None, pix_fmt='yuv420p', vf='scale=1280:720')
+                    .output(in_img, in_aud, scene_output_path, vcodec='libx264', acodec='aac', shortest=None, pix_fmt='yuv420p', vf='scale=1280:720')
                     .run(overwrite_output=True, quiet=True)
                 )
                 
                 merged_clips.append(scene_output_path)
                 progress_bar.progress(int(((idx + 1) / len(valid_scenes)) * 80))
                 
-            # 4. Concatenate All Scenes into Final Full Video
+            # 4. Concatenate All Scenes into Final Video
             st.info("🎬 Scene အားလုံးကို ဇာတ်လမ်းတစ်ပုဒ်တည်းဖြစ်အောင် ပေါင်းစပ်နေပါသည်။...")
             list_file_path = os.path.join(temp_dir, "files.txt")
             with open(list_file_path, "w") as f:
