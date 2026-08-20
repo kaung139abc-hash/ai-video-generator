@@ -9,34 +9,36 @@ import edge_tts
 
 st.set_page_config(page_title="3D AI Horror Video Studio", layout="centered")
 st.title("👻 3D AI Horror Video Generator")
-st.caption("✨ 3D Video + AI Horror Voice ကို အလိုအလျောက် အသံပေါင်းစပ်ပေးမည့် စနစ်")
+st.caption("✨ 3D Video + မြန်မာ/အင်္ဂလိပ် AI Voice ကို အလိုအလျောက် အသံပေါင်းစပ်ပေးမည့် စနစ်")
 
 st.subheader("📝 Scene များနှင့် ပြောမည့် စကားလုံးများ ရေးပါ")
-st.info("Scene တစ်ခုစီအတွက် 3D Visual Prompt နှင့် ပါဝင်မည့် အသံ (Voiceover) ကို ရေးပေးပါ။")
+st.info("Scene တစ်ခုစီအတွက် 3D Visual Prompt (အင်္ဂလိပ်လို) နှင့် ပါဝင်မည့် အသံ (မြန်မာ သို့မဟုတ် အင်္ဂလိပ်) ကို ရေးပေးပါ။")
 
 # Default Horror Scenes Demo
 default_scene_1 = "A 3D Pixar character walking in a creepy dark foggy forest with a flashlight, highly detailed"
-default_voice_1 = "It is so dark here. I think someone is following me."
+default_voice_1 = "ဒီနေရာက အရမ်းမှောင်တာပဲ။ ငါ့နောက်ကို တစ်ယောက်ယောက် လိုက်နေသလိုပဲ။"
 
 default_scene_2 = "The character stops and looks back nervously, a dark creepy shadow monster behind trees"
-default_voice_2 = "Who is there? Please don't come close to me!"
+default_voice_2 = "ဟိုမှာ ဘယ်သူလဲ။ ငါ့အနားကို တိုးမလာနဲ့နော်!"
 
 col1, col2 = st.columns(2)
 
 with col1:
     st.markdown("**🎬 Scene 1 (Visual & Voice)**")
-    s1_prompt = st.text_area("Scene 1 3D Prompt:", value=default_scene_1, height=100)
-    s1_voice = st.text_area("Scene 1 စကားပြောအသံ (English):", value=default_voice_1, height=70)
+    s1_prompt = st.text_area("Scene 1 3D Prompt (English):", value=default_scene_1, height=100)
+    s1_voice = st.text_area("Scene 1 စကားပြောအသံ (မြန်မာ/English):", value=default_voice_1, height=70)
 
 with col2:
     st.markdown("**🎬 Scene 2 (Visual & Voice)**")
-    s2_prompt = st.text_area("Scene 2 3D Prompt:", value=default_scene_2, height=100)
-    s2_voice = st.text_area("Scene 2 စကားပြောအသံ (English):", value=default_voice_2, height=70)
+    s2_prompt = st.text_area("Scene 2 3D Prompt (English):", value=default_scene_2, height=100)
+    s2_voice = st.text_area("Scene 2 စကားပြောအသံ (မြန်မာ/English):", value=default_voice_2, height=70)
 
-voice_style = st.selectbox("🎙️ AI Horror အသံအမျိုးအစား ရွေးပါ-", [
-    "en-US-ChristopherNeural (Dark/Horror Tone)",
-    "en-US-GuyNeural (Male Tone)",
-    "en-US-JennyNeural (Female Tone)"
+voice_style = st.selectbox("🎙️ AI အသံအမျိုးအစား ရွေးပါ-", [
+    "my-MM-ThihaNeural (မြန်မာ - အမျိုးသားအသံ)",
+    "my-MM-NilarNeural (မြန်မာ - အမျိုးသမီးအသံ)",
+    "en-US-ChristopherNeural (Dark/Horror Tone - English)",
+    "en-US-GuyNeural (Male Tone - English)",
+    "en-US-JennyNeural (Female Tone - English)"
 ])
 selected_voice = voice_style.split(" ")[0]
 
@@ -49,11 +51,10 @@ if st.button("🚀 အသံပါဝင်သော 3D Horror Video အပြ�
     temp_dir = tempfile.mkdtemp()
     merged_clips = []
     
-    st.info("⏳ AI မှ Video Render ပြုလုပ်ခြင်းနှင့် Horror Voice ထည့်သွင်းခြင်းများကို လုပ်ဆောင်နေပါသည်။...")
+    st.info("⏳ AI မှ Video Render ပြုလုပ်ခြင်းနှင့် မြန်မာ Voice ထည့်သွင်းခြင်းများကို လုပ်ဆောင်နေပါသည်။...")
     progress_bar = st.progress(0)
     
     try:
-        # Working Free Public Space သို့ အစားထိုးထားခြင်း
         client = Client("fffiloni/CogVideoX-5B-Space")
         
         async def make_audio(text, output_path):
@@ -109,17 +110,18 @@ if st.button("🚀 အသံပါဝင်သော 3D Horror Video အပြ�
         )
         
         progress_bar.progress(100)
-        st.success("✨ Horror အသံပါဝင်သော 3D Video ထွက်ရှိလာပါပြီ။")
+        st.success("✨ မြန်မာအသံပါဝင်သော 3D Video ထွက်ရှိလာပါပြီ။")
         
         st.video(final_video_path)
         
         with open(final_video_path, "rb") as f:
             st.download_button(
-                label="📥 Horror MP4 Video ဒေါင်းလုဒ်ယူရန်",
+                label="📥 MP4 Video ဒေါင်းလုဒ်ယူရန်",
                 data=f.read(),
-                file_name="3d_horror_story.mp4",
+                file_name="3d_horror_story_myanmar.mp4",
                 mime="video/mp4"
             )
 
     except Exception as e:
         st.error(f"Error တက်သွားပါသည်: {e}")
+
