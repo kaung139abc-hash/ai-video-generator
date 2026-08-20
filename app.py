@@ -53,7 +53,8 @@ if st.button("🚀 အသံပါဝင်သော 3D Horror Video အပြ�
     progress_bar = st.progress(0)
     
     try:
-        client = Client("ZeroGPU-Explorers/Text-to-Video")
+        # Working Free Public Space သို့ အစားထိုးထားခြင်း
+        client = Client("fffiloni/CogVideoX-5B-Space")
         
         async def make_audio(text, output_path):
             communicate = edge_tts.Communicate(text, selected_voice)
@@ -66,7 +67,10 @@ if st.button("🚀 အသံပါဝင်သော 3D Horror Video အပြ�
             st.write(f"🎬 Scene {idx+1} ကို လုပ်ဆောင်နေပါသည်...")
             
             # 1. Generate 3D Video
-            video_raw = client.predict(prompt=item["prompt"], api_name="/generate")
+            video_raw = client.predict(
+                prompt=item["prompt"],
+                api_name="/generate"
+            )
             clip_video_path = os.path.join(temp_dir, f"v_{idx}.mp4")
             shutil.copy(video_raw, clip_video_path)
             
@@ -75,13 +79,12 @@ if st.button("🚀 အသံပါဝင်သော 3D Horror Video အပြ�
             if item["voice"].strip():
                 asyncio.run(make_audio(item["voice"], clip_audio_path))
             
-            # 3. Merge Video + Audio for this Scene using FFmpeg
+            # 3. Merge Video + Audio using FFmpeg
             scene_output_path = os.path.join(temp_dir, f"scene_{idx}_merged.mp4")
             
             video_in = ffmpeg.input(clip_video_path)
             if item["voice"].strip() and os.path.exists(clip_audio_path):
                 audio_in = ffmpeg.input(clip_audio_path)
-                # Combine video and audio, shortest duration
                 ffmpeg.output(video_in, audio_in, scene_output_path, vcodec='copy', acodec='aac', shortest=None).run(overwrite_output=True, quiet=True)
             else:
                 shutil.copy(clip_video_path, scene_output_path)
@@ -89,8 +92,8 @@ if st.button("🚀 အသံပါဝင်သော 3D Horror Video အပြ�
             merged_clips.append(scene_output_path)
             progress_bar.progress(int(((idx + 1) / len(scenes_data)) * 80))
             
-        # 4. Concatenate all merged scenes into Final Full Video
-        st.info("🎬 Scene အားလုံးကို ဗီဒီယို ၁ ပုဒ်တည်းဖြစ်အောင် အချောသတ် ပေါင်းစပ်နေပါသည်။...")
+        # 4. Concatenate Final Full Video
+        st.info("🎬 Scene အားလုံးကို ဗီဒီယို ၁ ပုဒ်တည်းဖြစ်အောင် ပေါင်းစပ်နေပါသည်။...")
         
         list_file_path = os.path.join(temp_dir, "files.txt")
         with open(list_file_path, "w") as f:
@@ -106,7 +109,7 @@ if st.button("🚀 အသံပါဝင်သော 3D Horror Video အပြ�
         )
         
         progress_bar.progress(100)
-        st.success("✨ Horror အသံပါဝင်သော 3D Video အပြည့်အစုံ ထွက်ရှိလာပါပြီ။")
+        st.success("✨ Horror အသံပါဝင်သော 3D Video ထွက်ရှိလာပါပြီ။")
         
         st.video(final_video_path)
         
