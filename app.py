@@ -1,32 +1,19 @@
-import streamlit as st
-from gradio_client import Client
+# ၁။ လိုအပ်တဲ့ library များသွင်းခြင်း
+!pip install gTTS moviepy
 
-st.set_page_config(page_title="3D Horror Studio", layout="centered")
+from gtts import gTTS
+import os
 
-st.title("🎬 Cinematic 3D Horror Studio")
-st.write("✨ ရုပ်ရှင်အဆင့်မီ Cinematic 3D Character များဖြင့် ဗီဒီယို ဖန်တီးပေးသည့် စနစ်")
+# ၂။ Cinematic စကားပြောသံ ဖန်တီးခြင်း
+def create_cinematic_audio(text, filename="dialogue.mp3"):
+    # Horror/Cinema ဆန်ဆန် အသံထွက်အောင် ချိန်ညှိခြင်း (Language 'my' က မြန်မာစာအတွက်)
+    tts = gTTS(text=text, lang='my', slow=False)
+    tts.save(filename)
+    return filename
 
-colab_url = st.sidebar.text_input("🔗 Colab Gradio URL ထည့်ပါ:", placeholder="https://xxxx.gradio.live")
+# ၃။ ဇာတ်လမ်းစာသား
+script = "ရွာသူကြီး: ဒီည ရွာထဲကို နတ်ဆိုးကြီး ဝင်လာပြီ။ အကုန်လုံး တံခါးတွေ ပိတ်ထားကြ။"
 
-default_script = """ရွာသူကြီး: ဒီည ရွာထဲကို နတ်ဆိုးကြီး ဝင်လာပြီ။ အကုန်လုံး တံခါးတွေ ပိတ်ထားကြ။
-မိန်းကလေး: ကိုကို... ဒီရွာပျက်ကြီးထဲကို ဝင်ဖို့ တကယ်ပဲ လိုလို့လား။
-ကောင်လေး: မကြောက်ပါနဲ့ ညီမလေးရယ်။ ငါတို့ ဒီည သဲလွန်စ ရှာရမယ်။
-နတ်ဆိုးကြီး: ဟားဟားဟား... မင်းတို့ ငါ့ရဲ့ နယ်မြေထဲ ဝင်လာခဲ့ပြီပဲ။"""
-
-script = st.text_area("📝 ဇာတ်လမ်း စာသားများ ရိုက်ထည့်ပါ:", value=default_script, height=200)
-
-if st.button("🚀 Cinematic 3D Video ဖန်တီးမည်"):
-    if not colab_url:
-        st.error("⚠️ ဘေးဘက် Sidebar (>) တွင် Colab URL အရင်ထည့်ပေးပါခင်ဗျာ။")
-    else:
-        try:
-            with st.spinner("🎬 Colab GPU ဖြင့် ဗီဒီယို ထုတ်လုပ်နေပါသည်... (အချိန်အနည်းငယ်ကြာတတ်ပါသည်)..."):
-                client = Client(colab_url.strip())
-                # Timeout ကို စက္ကန့် ၆၀၀ (၁၀ မိနစ်) ထိ တိုးမြှင့်ထားခြင်း
-                result = client.predict(script, timeout=600)
-                st.success("✨ ဗီဒီယို ဖန်တီးမှု အောင်မြင်ပါပြီ။")
-                st.video(result)
-                with open(result, "rb") as f:
-                    st.download_button("📥 MP4 Download", data=f.read(), file_name="3D_Horror.mp4", mime="video/mp4")
-        except Exception as e:
-            st.error(f"❌ ချိတ်ဆက်မှု အမှားဖြစ်သွားပါသည်: {e}")
+# အသံဖိုင်ထုတ်ခြင်း
+audio_file = create_cinematic_audio(script)
+print(f"ရုပ်ရှင်ဆန်ဆန် အသံဖိုင်ကို {audio_file} အဖြစ် သိမ်းဆည်းလိုက်ပါပြီ။")
