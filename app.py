@@ -27,10 +27,8 @@ if st.button("🚀 ဗီဒီယို စတင်ထုတ်လုပ်မ
       lines = script_text.split("\n")
       audio_files = []
 
-      # ElevenLabs ရဲ့ ပုံသေ Voice ID များ (Default English/Multilingual Voice)
-      VOICE_ID = (
-          "21m00Tcm4TlvDq8ikWAM"  # Rachel (Default working free voice)
-      )
+      # ElevenLabs Voice ID (Multilingual အတွက် အဆင်ပြေသော Voice)
+      VOICE_ID = "21m00Tcm4TlvDq8ikWAM"  # Rachel
 
       success_count = 0
       for idx, line in enumerate(lines):
@@ -50,7 +48,7 @@ if st.button("🚀 ဗီဒီယို စတင်ထုတ်လုပ်မ
         }
         data = {
             "text": text_to_speak,
-            "model_id": "eleven_monolingual_v1",  # ပိုမို တည်ငြိမ်သော Model ကို သုံးထားသည်
+            "model_id": "eleven_multilingual_v2",  # မော်ဒယ်အသစ်သို့ ပြောင်းလဲထားသည်
             "voice_settings": {"stability": 0.5, "similarity_boost": 0.75},
         }
 
@@ -93,3 +91,4 @@ if st.button("🚀 ဗီဒီယို စတင်ထုတ်လုပ်မ
             "အသံဖိုင် တစ်ခုမှ ထုတ်ယူ၍ မရပါ (API Key သို့မဟုတ် စာသားကို"
             " စစ်ဆေးပါ)"
         )
+
