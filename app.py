@@ -44,7 +44,7 @@ if st.button("🚀 အသံနှင့် ဗီဒီယို တစ်ခ�
         audio_segments = []
         
         with st.spinner("အသံဖိုင်များကို တစ်ကြောင်းချင်းစီ ဖန်တီးနေပါပြီ..."):
-            for i, line in enumerate(lines]:
+            for i, line in enumerate(lines):
                 if ":" in line:
                     actor, text = line.split(":", 1)
                     actor_name = actor.strip()
@@ -61,15 +61,11 @@ if st.button("🚀 အသံနှင့် ဗီဒီယို တစ်ခ�
         
         if audio_segments:
             with st.spinner("အသံဖိုင်များကို တစ်ဆက်တည်း ပေါင်းစပ်နေပါပြီ..."):
-                # အသံအားလုံးကို တစ်ခုတည်းဖြစ်အောင် ပေါင်းခြင်း
                 combined_audio = sum(audio_segments)
                 final_audio_path = "temp/final_audio.mp3"
                 combined_audio.export(final_audio_path, format="mp3")
-                
-                # ထွက်လာတဲ့ အသံကို နားထောင်ရန် ပြသခြင်း
                 st.audio(final_audio_path)
             
-            # ပုံကို သိမ်းဆည်းခြင်း
             image_path = os.path.join("temp", char_image.name)
             with open(image_path, "wb") as f:
                 f.write(char_image.getbuffer())
