@@ -1,3 +1,5 @@
-streamlit
-edge-tts
-replicate
+fastapi>=0.115
+uvicorn[standard]>=0.30
+python-multipart>=0.0.9
+requests>=2.32
+edge-tts>=6.1
