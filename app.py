@@ -1,33 +1,31 @@
 import os
-from flask import Flask, render_template, request # သင့် app.py သုံးထားတဲ့ framework အပေါ်မူတည်၍ ပြင်နိုင်သည်
+import streamlit as st
 from gtts import gTTS
 
-app = Flask(__name__)
+st.title("AI Video Generator & Text-to-Speech")
 
-# --- TTS (Text-to-Speech) လုပ်ဆောင်ချက် အသစ် ---
-def generate_audio_from_text(text):
-    # စာလုံးရေ အများကြီးဆိုရင် အပိုင်းခွဲထုတ်ခြင်း
-    max_length = 400
-    chunks = [text[i:i+max_length] for i in range(0, len(text), max_length)]
-    
-    os.makedirs("output_audio", exist_ok=True)
-    
-    for index, chunk in enumerate(chunks):
-        # မြန်မာဘာသာ သို့မဟုတ် လိုချင်သည့်ဘာသာစကားဖြင့် အသံဖိုင်ထုတ်ခြင်း
-        tts = gTTS(text=chunk, lang='my', slow=False)
-        output_file = f"output_audio/part_{index+1}.mp3"
-        tts.save(output_file)
-    
-    print("အသံဖိုင်များ အောင်မြင်စွာ ထွက်ရှိပြီးပါပြီ။")
+# စာသားထည့်ရန် Input Box
+user_text = st.text_area("အသံပြောင်းလိုသော စာသားများကို ဤနေရာတွင် ရိုက်ထည့်ပါ သို့မဟုတ် ထည့်ပါ -", "ဒီနေရာမှာ ဇာတ်လမ်းစာသားများကို ထည့်နိုင်ပါတယ်။")
 
-# --- သင်၏ မူရင်း app.py ကုဒ်များ သို့မဟုတ် AI Video Generator လုပ်ဆောင်ချက်များ ---
-@app.route('/')
-def home():
-    # ဥပမာ - စာသားထည့်လိုက်တာနဲ့ အသံပါ တစ်ခါတည်း ထွက်လာစေရန်
-    sample_text = "ဒီနေရာမှာ ဗီဒီယိုအတွက် ထည့်မယ့် ဇာတ်လမ်းစာသားများ ဖြစ်ပါတယ်။"
-    generate_audio_from_text(sample_text)
-    
-    return "AI Video Generator & TTS app is running successfully!"
-
-if __name__ == '__main__':
-    app.run(debug=True)
+if st.button("အသံဖိုင် ထုတ်ယူမည်"):
+    if user_text:
+        with st.spinner("အသံဖိုင် ဖန်တီးနေပါပြီ..."):
+            # စာလုံးရေ အများကြီးဆိုရင် အပိုင်းခွဲထုတ်ခြင်း
+            max_length = 400
+            chunks = [user_text[i:i+max_length] for i in range(0, len(user_text), max_length)]
+            
+            os.makedirs("output_audio", exist_ok=True)
+            
+            for index, chunk in enumerate(chunks):
+                tts = gTTS(text=chunk, lang='my', slow=False)
+                output_file = f"output_audio/part_{index+1}.mp3"
+                tts.save(output_file)
+            
+            st.success("အသံဖိုင်များ အောင်မြင်စွာ ထွက်ရှိပြီးပါပြီ!")
+            
+            # ထွက်လာတဲ့ အသံဖိုင်များကို Play ပြရန်နဲ့ Download ဆွဲရန်ပြသခြင်း
+            for index in range(len(chunks)):
+                file_path = f"output_audio/part_{index+1}.mp3"
+                st.audio(file_path)
+    else:
+        st.warning("ကျေးဇူးပြု၍ စာသားအနည်းဆုံး တစ်ခုခု ထည့်ပေးပါ။")
