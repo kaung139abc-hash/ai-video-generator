@@ -2,16 +2,14 @@ import os
 import streamlit as st
 import requests
 
-st.title("🎙️ AI Voice Studio (ElevenLabs - Deep & Horror)")
+st.title("🎙️ AI Voice Studio (ElevenLabs Free Tier)")
 
-# သင်ပေးထားတဲ့ API Key ကို တခါတည်း ထည့်သွင်းပြီးသား ဖြစ်ပါတယ်
 API_KEY = "sk_d7d126e55b9b5970c5606ffab6f5f69e9d4b4c1e888795ef"
 
-# အသံအမျိုးအစားများ (ElevenLabs ရဲ့ လူကြိုက်များပြီး အသံနက်တဲ့ Voice ID များ)
+# Free Account API ဖြင့် သုံးလို့ရသော Default Voice IDs များ (Adam နှင့် Rachel)
 voice_options = {
-    "Antoni (တည်ငြိမ်သော ယောက်ျားအသံ)": "ErXwobaYiN019PkySvjV",
-    "Adam (သဘာဝကျသော ယောက်ျားအသံ)": "pNInz6obpgDQGcFmaJgB",
-    "Marcus (အသံနက်/လူကြီးသံ)": "GBv7mTt0atIp3Br8iCZE"
+    "Adam (ယောက်ျားအသံ)": "pNInz6obpgDQGcFmaJgB",
+    "Rachel (မိန်းမအသံ)": "21m00Tcm4TlvDq8ikWAM"
 }
 
 selected_voice_name = st.selectbox("အသံစတိုင်ကို ရွေးပါ -", list(voice_options.keys()))
@@ -37,7 +35,7 @@ if st.button("အသံဖိုင် ထုတ်မည်"):
                 "text": user_text,
                 "model_id": "eleven_multilingual_v2",
                 "voice_settings": {
-                    "stability": 0.6,
+                    "stability": 0.5,
                     "similarity_boost": 0.75
                 }
             }
