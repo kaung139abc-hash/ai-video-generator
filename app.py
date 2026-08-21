@@ -1,17 +1,16 @@
 import os
 import streamlit as st
 from gtts import gTTS
-from pydub import AudioSegment
 
-st.title("🎙️ AI Voice Studio (Deep Male & Horror Voice)")
+st.title("🎙️ AI Voice Studio")
 
-# အသံအမျိုးအစား ရွေးချယ်စရာများ
+# အသံစတိုင်ရွေးချယ်ခြင်း
 voice_style = st.selectbox(
-    "အသံစတိုင်/အမျိုးအစားကို ရွေးပါ -",
+    "အသံစတိုင်ကို ရွေးပါ -",
     [
-        "ယောက်ျားအသံနက်နက် (Deep Male Voice)",
-        "ဟောရာဆန်ဆန်/တစ္ဆေသံ (Horror/Creepy Style)",
-        "ပုံမှန်အသံ (Normal Voice)"
+        "ပုံမှန်အသံ (Normal Voice)",
+        "အဖိုးအို/အသံနက်စတိုင် (Deep/Slow Style)",
+        "ဟောရာဆန်ဆန် ခြောက်ခြားစရာ (Horror Style)"
     ]
 )
 
@@ -21,27 +20,22 @@ if st.button("အသံဖိုင် ထုတ်မည်"):
     if user_text:
         with st.spinner("အသံဖိုင် ဖန်တီးနေပါပြီ..."):
             os.makedirs("output_audio", exist_ok=True)
-            temp_file = "output_audio/temp.mp3"
-            output_file = "output_audio/final_voice.mp3"
+            output_file = "output_audio/generated_voice.mp3"
             
-            # gTTS ဖြင့် ပုံမှန်အသံ အရင်ထုတ်ခြင်း
-            tts = gTTS(text=user_text, lang='my', slow=False)
-            tts.save(temp_file)
+            # အဖိုးအို သို့မဟုတ် ဟောရာအတွက် slow (အသံနှေးပြီး လေသံလေးလေးနဲ့ ထွက်စေရန်) ကို အသုံးပြုခြင်း
+            is_slow = True if "အဖိုးအို" in voice_style or "ဟောရာ" in voice_style else False
             
-            # pydub ဖြင့် အသံကို ယောက်ျားအသံနက်နက် သို့မဟုတ် ဟောရာစတိုင်ဖြစ်အောင် ပြောင်းလဲခြင်း
-            sound = AudioSegment.from_mp3(temp_file)
-            
-            if "ယောက်ျားအသံနက်နက်" in voice_style or "ဟောရာဆန်ဆန်" in voice_style:
-                # အသံကို ပိုနိမ့်သွားအောင် (Pitch ကျအောင်) ပြုလုပ်ခြင်းဖြင့် ယောက်ျားသံနက် သို့မဟုတ် ကြောက်စရာအသံ ပုံစံဖော်ခြင်း
-                # sample_rate ကို ချိန်ညှိခြင်းဖြင့် အသံထွက်ကို ထူထဲနက်ရှိုင်းစေသည်
-                new_sample_rate = int(sound.frame_rate * 0.8) # အသံကို ပိုထူပြီး နက်စေရန်
-                deep_sound = sound._spawn(sound.raw_data, overrides={'frame_rate': new_sample_rate})
-                deep_sound = deep_sound.set_frame_rate(44100)
-                deep_sound.export(output_file, format="mp3")
-            else:
-                sound.export(output_file, format="mp3")
+            # gTTS ဖြင့် အသံထုတ်ခြင်း
+            tts = gTTS(text=user_text, lang='my', slow=is_slow)
+            tts.save(output_file)
             
             st.success("အသံဖိုင် အောင်မြင်စွာ ထွက်ရှိပါပြီ!")
+            
+            if "ဟောရာ" in voice_style:
+                st.warning("👻 ဟောရာဆန်ဆန် ခြောက်ခြားဖွယ် လေသံဖြင့် ထုတ်ထားပါသည်။")
+            elif "အဖိုးအို" in voice_style:
+                st.info("👴 အသံနက်/အနှေး စတိုင်ဖြင့် ထုတ်ထားပါသည်။")
+                
             st.audio(output_file)
     else:
         st.warning("ကျေးဇူးပြု၍ စာသားထည့်ပါ။")
