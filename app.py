@@ -3,39 +3,25 @@ import asyncio
 import edge_tts
 import os
 
-st.title("🎙️ AI Voice Studio (Male/Female Options)")
+st.title("🎙️ AI Voice Studio (Deep Male Voice)")
 
-# အသံစတိုင် ရွေးချယ်ခြင်း
-# my-MM-ThihaNeural က ယောက်ျားအသံ၊ my-MM-NilarNeural က မိန်းမအသံ ဖြစ်ပါတယ်
-voice_option = st.selectbox(
-    "အသံစတိုင်ကို ရွေးပါ -",
-    ["ယောက်ျားအသံ (Thiha)", "မိန်းမအသံ (Nilar)"]
-)
+user_text = st.text_area("စာသားများ ရိုက်ထည့်ပါ -", "ကျွန်တော် အခု အသံနက်နက်နဲ့ ပြောနေပါပြီ။")
 
-# Voice Mapping
-voice_map = {
-    "ယောက်ျားအသံ (Thiha)": "my-MM-ThihaNeural",
-    "မိန်းမအသံ (Nilar)": "my-MM-NilarNeural"
-}
-
-user_text = st.text_area("စာသားများ ရိုက်ထည့်ပါ -", "မင်္ဂလာပါ။ ကျွန်တော်က AI အသံဖိုင် စမ်းသပ်နေတာပါ။")
-
-async def generate_audio(text, voice, output_file):
-    communicate = edge_tts.Communicate(text, voice)
+# Pitch ကို -10Hz လျှော့ချခြင်းဖြင့် အသံပိုနက်စေပါတယ်
+async def generate_deep_audio(text, output_file):
+    voice = "my-MM-ThihaNeural"
+    communicate = edge_tts.Communicate(text, voice, pitch="-10Hz")
     await communicate.save(output_file)
 
-if st.button("အသံဖိုင် ထုတ်မည်"):
+if st.button("အသံနက်နက်နဲ့ ထုတ်မည်"):
     if user_text:
         with st.spinner("အသံဖိုင် ဖန်တီးနေပါပြီ..."):
             os.makedirs("output_audio", exist_ok=True)
-            output_file = "output_audio/generated_voice.mp3"
+            output_file = "output_audio/deep_voice.mp3"
             
-            # Asyncio loop ကို Run ခြင်း
             try:
-                asyncio.run(generate_audio(user_text, voice_map[voice_option], output_file))
+                asyncio.run(generate_deep_audio(user_text, output_file))
                 st.success("အသံဖိုင် ထွက်ရှိပါပြီ!")
                 st.audio(output_file)
             except Exception as e:
-                st.error(f"အမှားတစ်ခု ဖြစ်ပေါ်နေသည်: {e}")
-    else:
-        st.warning("ကျေးဇူးပြု၍ စာသားထည့်ပါ။")
+                st.error(f"Error: {e}")
