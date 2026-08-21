@@ -1,4 +1,5 @@
 streamlit
-requests
-moviepy
-gTTS
+gtts
+SpeechRecognition
+pyaudio
+pydub
