@@ -2,7 +2,7 @@ import os
 import streamlit as st
 import asyncio
 import edge_tts
-from moviepy.editor import TextClip, AudioFileClip, ColorClip, CompositeVideoClip
+from moviepy import AudioFileClip, ColorClip, CompositeVideoClip
 
 st.title("🎬 Novel to MP4 Video AI Generator")
 
@@ -17,7 +17,7 @@ async def generate_audio(text, output_file):
     communicate = edge_tts.Communicate(text, voice, pitch="-30Hz", rate="-5%")
     await communicate.save(output_file)
 
-# MoviePy ဖြင့် MP4 ဗီဒီယို ဖန်တီးသည့် ဖန်ရှင်
+# MoviePy ဖြင့် MP4 ဗီဒီယို ဖန်တီးသည့် ဖန်ရှင် (ဗားရှင်းအသစ်အတွက် with_audio ကို သုံးထားသည်)
 def create_mp4_video(audio_path, output_video_path):
     try:
         # အသံဖိုင်ကို တင်ခြင်း
@@ -27,8 +27,8 @@ def create_mp4_video(audio_path, output_video_path):
         # အမည်းရောင် နောက်ခံ ဗီဒီယိုဖန်တီးခြင်း (အရွယ်အစား 720x1280 - TikTok/Shorts ပုံစံ)
         bg_clip = ColorClip(size=(720, 1280), color=(10, 10, 15), duration=duration)
         
-        # အသံကို ဗီဒီယိုနဲ့ ပေါင်းစပ်ခြင်း
-        video = bg_clip.set_audio(audio_clip)
+        # အသံကို ဗီဒီယိုနဲ့ ပေါင်းစပ်ခြင်း (ဗားရှင်းအသစ်အတွက် with_audio ကို သုံးရပါသည်)
+        video = bg_clip.with_audio(audio_clip)
         
         # MP4 ဖိုင်အဖြစ် သိမ်းဆည်းခြင်း
         video.write_videofile(output_video_path, fps=24, codec="libx264", audio_codec="aac")
