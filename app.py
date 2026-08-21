@@ -1,69 +1,100 @@
-import os
 import streamlit as st
+import os
 import asyncio
 import edge_tts
-from moviepy import AudioFileClip, ColorClip, CompositeVideoClip
+from pydub import AudioSegment
+import replicate
 
-st.title("🎬 Novel to MP4 Video AI Generator")
+st.set_page_config(page_title="Multi-Voice AI Video Generator", page_icon="🎬", layout="centered")
 
-user_text = st.text_area(
-    "ဗီဒီယိုဖန်တီးမည့် ဇာတ်လမ်း စာသားများ ရိုက်ထည့်ပါ -",
-    "ည ၁၂ နာရီ တိတိ။ တိတ်ဆိတ်ငြိမ်သက်နေတဲ့ အခန်းထဲမှာ..."
+st.title("🎬 Multi-Voice & Character AI Video Generator")
+st.write("ဇာတ်ကောင်အလိုက် မတူညီသော အသံများကို အလိုအလျောက် ခွဲထုတ်၍ ဗီဒီယိုဖန်တီးရန်")
+
+# API Token
+api_key = st.text_input("Replicate API Token ထည့်ပါ:", type="password")
+
+# ဇာတ်ကောင်များနှင့် အသံအမျိုးအစားများ သတ်မှတ်ခြင်း (Male/Female အမျိုးစုံ)
+st.markdown("### 🎙️ ဇာတ်ကောင်များ၏ အသံပုံစံများ")
+col1, col2 = st.columns(2)
+with col1:
+    char_1_voice = st.selectbox("ဇာတ်ကောင် ၁ အသံ", ["my-MM-ThihaNeural (အသံနက်/ကျား)", "my-MM-NilarNeural (အသံသွက်/မ)"])
+with col2:
+    char_2_voice = st.selectbox("ဇာတ်ကောင် ၂ အသံ", ["my-MM-NilarNeural (အသံသွက်/မ)", "my-MM-ThihaNeural (အသံနက်/ကျား)"])
+
+# ဇာတ်လမ်းစာသား ထည့်သွင်းရန်
+script_input = st.text_area(
+    "ဇာတ်လမ်းစာသား ရိုက်ထည့်ပါ (ပုံစံ: ဇာတ်ကောင် ၁: မင်္ဂလာပါ / ဇာတ်ကောင် ၂: ဟယ်လိုပါ)",
+    "ဇာတ်ကောင် ၁: ဟေ့လူ၊ ဒီဘက်ကို ခဏလာခဲ့ပါဦး။\nဇာတ်ကောင် ၂: ဘာဖြစ်လို့လဲ၊ ဘာကိစ္စရှိလို့လဲဗျ။"
 )
 
-# အသံထုတ်ပေးသည့် ဖန်ရှင် (Edge-TTS)
-async def generate_audio(text, output_file):
-    voice = "my-MM-ThihaNeural"
-    communicate = edge_tts.Communicate(text, voice, pitch="-30Hz", rate="-5%")
-    await communicate.save(output_file)
+char_image = st.file_uploader("ဇာတ်ကောင် ပုံတင်ရန် (JPG / PNG)", type=["jpg", "png"])
 
-# MoviePy ဖြင့် MP4 ဗီဒီယို ဖန်တီးသည့် ဖန်ရှင် (ဗားရှင်းအသစ်အတွက် with_audio ကို သုံးထားသည်)
-def create_mp4_video(audio_path, output_video_path):
-    try:
-        # အသံဖိုင်ကို တင်ခြင်း
-        audio_clip = AudioFileClip(audio_path)
-        duration = audio_clip.duration
-        
-        # အမည်းရောင် နောက်ခံ ဗီဒီယိုဖန်တီးခြင်း (အရွယ်အစား 720x1280 - TikTok/Shorts ပုံစံ)
-        bg_clip = ColorClip(size=(720, 1280), color=(10, 10, 15), duration=duration)
-        
-        # အသံကို ဗီဒီယိုနဲ့ ပေါင်းစပ်ခြင်း (ဗားရှင်းအသစ်အတွက် with_audio ကို သုံးရပါသည်)
-        video = bg_clip.with_audio(audio_clip)
-        
-        # MP4 ဖိုင်အဖြစ် သိမ်းဆည်းခြင်း
-        video.write_videofile(output_video_path, fps=24, codec="libx264", audio_codec="aac")
-        return True
-    except Exception as e:
-        st.error(f"ဗီဒီယိုထုတ်လုပ်ရာတွင် Error ဖြစ်သည်: {e}")
-        return False
+# အသံထုတ်ပေးသည့် ဖန်ရှင်
+async def generate_single_audio(text, voice_name, filename):
+    v_id = "my-MM-ThihaNeural" if "Thiha" in voice_name else "my-MM-NilarNeural"
+    communicate = edge_tts.Communicate(text, v_id)
+    await communicate.save(filename)
 
-if st.button("🚀 MP4 ဗီဒီယို ဖန်တီးမည်"):
-    if user_text.strip():
-        with st.spinner("အသံဖိုင်နှင့် ဗီဒီယိုကို ဖန်တီးနေပါပြီ... ခေတ္တစောင့်ဆိုင်းပေးပါ"):
-            os.makedirs("output_media", exist_ok=True)
-            audio_file = "output_media/story_audio.mp3"
-            video_file = "output_media/story_video.mp4"
-            
-            try:
-                # ၁။ အသံဖိုင်ထုတ်ရန်
-                asyncio.run(generate_audio(user_text, audio_file))
-                
-                # ၂။ MP4 ဗီဒီယို ထုတ်ရန်
-                success = create_mp4_video(audio_file, video_file)
-                
-                if success:
-                    st.success("🎉 MP4 ဗီဒီယို အောင်မြင်စွာ ထွက်ရှိပါပြီ!")
-                    # ဗီဒီယိုကို တိုက်ရိုက်ပြသရန်နှင့် Download ဆွဲရန်
-                    st.video(video_file)
+if st.button("🚀 အသံနှင့် ဗီဒီယို တစ်ခါတည်း ထုတ်မည်"):
+    if script_input and char_image and api_key:
+        os.makedirs("temp", exist_ok=True)
+        os.environ["REPLICATE_API_TOKEN"] = api_key
+        
+        lines = script_input.split('\n')
+        audio_segments = []
+        
+        with st.spinner("အသံဖိုင်များကို တစ်ကြောင်းချင်းစီ ဖန်တီးနေပါပြီ..."):
+            for i, line in enumerate(lines]:
+                if ":" in line:
+                    actor, text = line.split(":", 1)
+                    actor_name = actor.strip()
                     
-                    with open(video_file, "rb") as f:
-                        st.download_button(
-                            label="📥 MP4 ဗီဒီယိုကို Download ရယူရန်",
-                            data=f,
-                            file_name="novel_story.mp4",
-                            mime="video/mp4"
+                    # ဇာတ်ကောင်အလိုက် ရွေးချယ်ထားသော အသံကို သတ်မှတ်ခြင်း
+                    if "၁" in actor_name:
+                        selected_voice = char_1_voice
+                    else:
+                        selected_voice = char_2_voice
+                        
+                    file_name = f"temp/audio_{i}.mp3"
+                    asyncio.run(generate_single_audio(text.strip(), selected_voice, file_name))
+                    audio_segments.append(AudioSegment.from_mp3(file_name))
+        
+        if audio_segments:
+            with st.spinner("အသံဖိုင်များကို တစ်ဆက်တည်း ပေါင်းစပ်နေပါပြီ..."):
+                # အသံအားလုံးကို တစ်ခုတည်းဖြစ်အောင် ပေါင်းခြင်း
+                combined_audio = sum(audio_segments)
+                final_audio_path = "temp/final_audio.mp3"
+                combined_audio.export(final_audio_path, format="mp3")
+                
+                # ထွက်လာတဲ့ အသံကို နားထောင်ရန် ပြသခြင်း
+                st.audio(final_audio_path)
+            
+            # ပုံကို သိမ်းဆည်းခြင်း
+            image_path = os.path.join("temp", char_image.name)
+            with open(image_path, "wb") as f:
+                f.write(char_image.getbuffer())
+                
+            with st.spinner("AI ဇာတ်ကောင် စကားပြောဗီဒီယိုကို ဖန်တီးနေပါပြီ (ခေတ္တစောင့်ပါ)..."):
+                try:
+                    with open(image_path, "rb") as img_file, open(final_audio_path, "rb") as aud_file:
+                        output = replicate.run(
+                            "fauconbarbarian/sadtalker:3aa3dac9353cc4d6bd62a8f959573847893d8efa704a529364b68e63a89069d3",
+                            input={
+                                "source_image": img_file,
+                                "driven_audio": aud_file,
+                                "still": True,
+                                "enhancer": "gfpgan"
+                            }
                         )
-            except Exception as e:
-                st.error(f"Error: {e}")
+                    
+                    if output:
+                        st.success("🎉 အောင်မြင်စွာ ဖန်တီးပြီးပါပြီ!")
+                        st.video(output)
+                        st.markdown(f"[📥 ဗီဒီယိုဖိုင်ကို Download ရယူရန်]({output})")
+                        
+                except Exception as e:
+                    st.error(f"Error ဖြစ်ပွားသည်: {e}")
+        else:
+            st.warning("စာသားဖော်မတ် မှန်ကန်မှု မရှိပါ။ (ဥပမာ - ဇာတ်ကောင် ၁: စာသား)")
     else:
-        st.warning("ကျေးဇူးပြု၍ စာသားထည့်ပါ။")
+        st.warning("ကျေးဇူးပြု၍ API Token၊ စာသားနှင့် ပုံကို အပြည့်အစုံ ဖြည့်ပေးပါ။")
