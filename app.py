@@ -2,57 +2,68 @@ import os
 import streamlit as st
 import asyncio
 import edge_tts
+from moviepy.editor import TextClip, AudioFileClip, ColorClip, CompositeVideoClip
 
-st.title("🎬 Novel → Movie & Voice AI (Streamlit)")
+st.title("🎬 Novel to MP4 Video AI Generator")
 
 user_text = st.text_area(
-    "ဝတ္ထု (သို့မဟုတ်) ဇာတ်လမ်း စာသားများ ရိုက်ထည့်ပါ -",
+    "ဗီဒီယိုဖန်တီးမည့် ဇာတ်လမ်း စာသားများ ရိုက်ထည့်ပါ -",
     "ည ၁၂ နာရီ တိတိ။ တိတ်ဆိတ်ငြိမ်သက်နေတဲ့ အခန်းထဲမှာ..."
 )
 
-max_scenes = st.slider("Scene အများဆုံး ခွဲမည်", min_value=1, max_value=10, value=3)
-
-# ဇာတ်လမ်းကို အပိုင်းလိုက် (Scenes) ခွဲထုတ်ပေးသည့် ဖန်ရှင်
-def basic_plan(novel, max_s):
-    parts = [x.strip() for x in novel.replace("\r", "").split("\n\n") if x.strip()]
-    if not parts:
-        parts = [novel.strip()]
-    parts = parts[:max_s]
-    
-    scenes = []
-    for i, text in enumerate(parts, 1):
-        scenes.append({
-            "id": i,
-            "title": f"Scene {i}",
-            "summary": text,
-        })
-    return scenes
-
-# အသံထုတ်ပေးသည့် ဖန်ရှင် (Edge-TTS - Thiha အသံနက်)
+# အသံထုတ်ပေးသည့် ဖန်ရှင် (Edge-TTS)
 async def generate_audio(text, output_file):
     voice = "my-MM-ThihaNeural"
     communicate = edge_tts.Communicate(text, voice, pitch="-30Hz", rate="-5%")
     await communicate.save(output_file)
 
-if st.button("🚀 ဇာတ်လမ်းနှင့် အသံဖိုင် ဖန်တီးမည်"):
+# MoviePy ဖြင့် MP4 ဗီဒီယို ဖန်တီးသည့် ဖန်ရှင်
+def create_mp4_video(audio_path, output_video_path):
+    try:
+        # အသံဖိုင်ကို တင်ခြင်း
+        audio_clip = AudioFileClip(audio_path)
+        duration = audio_clip.duration
+        
+        # အမည်းရောင် နောက်ခံ ဗီဒီယိုဖန်တီးခြင်း (အရွယ်အစား 720x1280 - TikTok/Shorts ပုံစံ)
+        bg_clip = ColorClip(size=(720, 1280), color=(10, 10, 15), duration=duration)
+        
+        # အသံကို ဗီဒီယိုနဲ့ ပေါင်းစပ်ခြင်း
+        video = bg_clip.set_audio(audio_clip)
+        
+        # MP4 ဖိုင်အဖြစ် သိမ်းဆည်းခြင်း
+        video.write_videofile(output_video_path, fps=24, codec="libx264", audio_codec="aac")
+        return True
+    except Exception as e:
+        st.error(f"ဗီဒီယိုထုတ်လုပ်ရာတွင် Error ဖြစ်သည်: {e}")
+        return False
+
+if st.button("🚀 MP4 ဗီဒီယို ဖန်တီးမည်"):
     if user_text.strip():
-        with st.spinner("ဇာတ်လမ်းကို Scene များ ခွဲထုတ်နေပါပြီ..."):
-            scenes = basic_plan(user_text, max_scenes)
+        with st.spinner("အသံဖိုင်နှင့် ဗီဒီယိုကို ဖန်တီးနေပါပြီ... ခေတ္တစောင့်ဆိုင်းပေးပါ"):
+            os.makedirs("output_media", exist_ok=True)
+            audio_file = "output_media/story_audio.mp3"
+            video_file = "output_media/story_video.mp4"
             
-            st.success("အောင်မြင်သည်!")
-            
-            # Scene တစ်ခုချင်းစီကို ပြသပေးခြင်း
-            for scene in scenes:
-                st.markdown(f"### 📌 {scene['title']}")
-                st.write(scene['summary'])
+            try:
+                # ၁။ အသံဖိုင်ထုတ်ရန်
+                asyncio.run(generate_audio(user_text, audio_file))
                 
-                # Scene တစ်ခုချင်းအတွက် အသံဖိုင်ထုတ်ရန်
-                output_file = f"output_scene_{scene['id']}.mp3"
-                try:
-                    asyncio.run(generate_audio(scene['summary'], output_file))
-                    st.audio(output_file)
-                except Exception as e:
-                    st.error(f"အသံထုတ်ရာတွင် Error ဖြစ်သည်: {e}")
-                st.divider()
+                # ၂။ MP4 ဗီဒီယို ထုတ်ရန်
+                success = create_mp4_video(audio_file, video_file)
+                
+                if success:
+                    st.success("🎉 MP4 ဗီဒီယို အောင်မြင်စွာ ထွက်ရှိပါပြီ!")
+                    # ဗီဒီယိုကို တိုက်ရိုက်ပြသရန်နှင့် Download ဆွဲရန်
+                    st.video(video_file)
+                    
+                    with open(video_file, "rb") as f:
+                        st.download_button(
+                            label="📥 MP4 ဗီဒီယိုကို Download ရယူရန်",
+                            data=f,
+                            file_name="novel_story.mp4",
+                            mime="video/mp4"
+                        )
+            except Exception as e:
+                st.error(f"Error: {e}")
     else:
         st.warning("ကျေးဇူးပြု၍ စာသားထည့်ပါ။")
