@@ -2,7 +2,6 @@ import streamlit as st
 import os
 import asyncio
 import edge_tts
-from pydub import AudioSegment
 import replicate
 
 st.set_page_config(page_title="Multi-Voice AI Video Generator", page_icon="🎬", layout="centered")
@@ -13,7 +12,7 @@ st.write("ဇာတ်ကောင်အလိုက် မတူညီသော
 # API Token
 api_key = st.text_input("Replicate API Token ထည့်ပါ:", type="password")
 
-# ဇာတ်ကောင်များနှင့် အသံအမျိုးအစားများ သတ်မှတ်ခြင်း (Male/Female အမျိုးစုံ)
+# ဇာတ်ကောင်များနှင့် အသံအမျိုးအစားများ သတ်မှတ်ခြင်း
 st.markdown("### 🎙️ ဇာတ်ကောင်များ၏ အသံပုံစံများ")
 col1, col2 = st.columns(2)
 with col1:
@@ -41,7 +40,7 @@ if st.button("🚀 အသံနှင့် ဗီဒီယို တစ်ခ�
         os.environ["REPLICATE_API_TOKEN"] = api_key
         
         lines = script_input.split('\n')
-        audio_segments = []
+        audio_files = []
         
         with st.spinner("အသံဖိုင်များကို တစ်ကြောင်းချင်းစီ ဖန်တီးနေပါပြီ..."):
             for i, line in enumerate(lines):
@@ -49,7 +48,6 @@ if st.button("🚀 အသံနှင့် ဗီဒီယို တစ်ခ�
                     actor, text = line.split(":", 1)
                     actor_name = actor.strip()
                     
-                    # ဇာတ်ကောင်အလိုက် ရွေးချယ်ထားသော အသံကို သတ်မှတ်ခြင်း
                     if "၁" in actor_name:
                         selected_voice = char_1_voice
                     else:
@@ -57,13 +55,17 @@ if st.button("🚀 အသံနှင့် ဗီဒီယို တစ်ခ�
                         
                     file_name = f"temp/audio_{i}.mp3"
                     asyncio.run(generate_single_audio(text.strip(), selected_voice, file_name))
-                    audio_segments.append(AudioSegment.from_mp3(file_name))
+                    audio_files.append(file_name)
         
-        if audio_segments:
-            with st.spinner("အသံဖိုင်များကို တစ်ဆက်တည်း ပေါင်းစပ်နေပါပြီ..."):
-                combined_audio = sum(audio_segments)
+        if audio_files:
+            with st.spinner("အသံဖိုင်များကို ပေါင်းစပ်နေပါပြီ..."):
                 final_audio_path = "temp/final_audio.mp3"
-                combined_audio.export(final_audio_path, format="mp3")
+                # pydub မသုံးဘဲ binary အနေနဲ့ အသံဖိုင်တွေကို တိုက်ရိုက်ဆက်ခြင်း
+                with open(final_audio_path, "wb") as outfile:
+                    for f_name in audio_files:
+                        with open(f_name, "rb") as infile:
+                            outfile.write(infile.read())
+                            
                 st.audio(final_audio_path)
             
             image_path = os.path.join("temp", char_image.name)
