@@ -1,5 +1,3 @@
-ffmpeg
-imagemagick
 streamlit
 requests
 edge-tts
